@@ -1,91 +1,140 @@
-## TSK 信息助手（前后端一体）
+# TSK 信息助手（RAG 个人知识库问答系统）
 
-这是一个“个人信息问答 + 知识库检索”的项目，包含：
-
-- `front`：前端聊天界面（React + Vite + TypeScript）
-- `backend`：后端 API（NestJS + LangChain + Qdrant）
-
-核心能力：
-
-- 对话问答：`/ai/chat`
-- 个人知识库入库：上传简历文件、同步 GitHub 公开仓库
-- RAG 检索：对入库内容做语义检索后再回答
-- 访问保护：可通过 API Key 保护后端接口
+一个可用于“个人信息智能问答”的前后端一体项目。  
+系统会将简历文件和 GitHub 公开仓库内容写入向量库，通过 RAG 检索后生成更准确的回答。
 
 ---
 
-## 1. 项目结构
+## 效果预览
+
+![TSK 信息助手效果图](./pic.png)
+
+---
+
+## 1. 项目目标
+
+解决以下场景：
+
+- 面试或项目介绍时，快速回答“你是谁、做过什么、项目难点是什么”
+- 将个人资料结构化沉淀为可检索知识库，避免临场遗忘
+- 支持持续更新：简历重传、GitHub 仓库增量/重建入库
+
+---
+
+## 2. 功能总览
+
+### 2.1 对话问答
+
+- 入口接口：`POST /ai/chat`
+- 支持流式返回
+- 可配置 API Key 保护接口
+
+### 2.2 知识库入库
+
+- 文件入库：`POST /knowledge/ingest/file`
+  - 支持 `txt / pdf / docx`
+  - 支持同名覆盖（默认）或追加
+- GitHub 入库：`POST /knowledge/ingest/github`
+  - 拉取指定用户公开仓库及 README
+
+### 2.3 检索与质量保障
+
+- 检索工具：语义检索个人知识片段后再回答
+- 质检接口：`POST /knowledge/quality-check`
+- 入库结果返回 `qualityReport`，便于判断可用性
+
+---
+
+## 3. 技术架构
+
+```text
+前端（front, React + Vite + TS）
+        │
+        ▼
+后端 API（backend, NestJS + LangChain）
+        │
+        ▼
+向量数据库（Qdrant）
+```
+
+- `front`：聊天 UI、项目快捷提问、上传简历、GitHub 同步
+- `backend`：对话编排、知识入库、向量检索、质量检查
+
+---
+
+## 4. 目录结构
 
 ```text
 .
-├── backend/      # NestJS 后端
-├── front/        # React 前端
-└── README.md
+├── backend/                  # NestJS 后端服务
+├── front/                    # React 前端应用
+├── pic.png                   # README 效果图
+└── README.md                 # 项目总文档（当前文件）
 ```
 
 ---
 
-## 2. 技术栈
+## 5. 环境要求
 
-### 前端（`front`）
-
-- React 19
-- Vite 8
-- TypeScript
-- `@ai-sdk/react`（聊天流式 UI）
-- TailwindCSS（已安装）
-
-### 后端（`backend`）
-
-- NestJS 11
-- LangChain + OpenAI 兼容模型接口
-- Qdrant（向量库）
-- `mammoth` / `pdf-parse`（文件解析）
+- Node.js >= 20
+- `pnpm`（统一包管理工具）
+- 可用的 Qdrant 实例（云端或自建）
+- 可用的大模型兼容 OpenAI API 地址
 
 ---
 
-## 3. 快速开始
+## 6. 快速开始
 
-> 建议 Node.js >= 20，包管理器使用 `pnpm`。
-
-### 3.1 安装依赖
+## 6.1 安装依赖
 
 ```bash
 pnpm --dir backend install
 pnpm --dir front install
 ```
 
-### 3.2 配置环境变量
+## 6.2 配置后端环境变量
 
-在 `backend/.env` 中配置（示例）：
+在 `backend/.env` 新建并填写：
 
 ```env
-# LLM
+# ===== LLM =====
 MODEL_NAME=qwen-plus
 OPENAI_API_KEY=your_api_key
 OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 
-# Web Search
+# ===== 可选：联网搜索 =====
 BOCHA_API_KEY=your_bocha_key
 
-# Qdrant
+# ===== Qdrant =====
 QDRANT_URL=https://your-qdrant-url
-QDRANT_API_KEY=your-qdrant-api-key
+QDRANT_API_KEY=your_qdrant_api_key
 QDRANT_COLLECTION=personal_intro
 EMBEDDING_MODEL=text-embedding-v4
 EMBEDDING_DIMENSIONS=1024
 
-# Optional: API 访问保护
+# ===== 可选：接口鉴权 =====
 FRIEND_API_KEY=your_secure_random_key
 
-# Optional: 提高 GitHub API 限额
+# ===== 可选：提高 GitHub API 额度 =====
 GITHUB_TOKEN=your_github_token
 GITHUB_USER_AGENT=agui-backend
 ```
 
-前端通过环境变量 `VITE_API_BASE` 指定后端根地址；未设置时使用相对路径（适合 Vite 开发代理或 Docker 下同源 Nginx 反代）。本地若直连后端可设 `VITE_API_BASE=http://localhost:3001`。
+参数说明（核心）：
 
-### 3.3 启动服务
+- `OPENAI_BASE_URL`：兼容 OpenAI 的模型网关地址
+- `QDRANT_COLLECTION`：向量集合名，默认 `personal_intro`
+- `EMBEDDING_DIMENSIONS`：向量维度，必须与 embedding 输出一致
+- `FRIEND_API_KEY`：配置后所有关键接口将需要鉴权
+
+## 6.3 配置前端环境变量（可选）
+
+前端可通过 `VITE_API_BASE` 指向后端地址。
+
+- 本地直连后端：`VITE_API_BASE=http://localhost:3001`
+- 不配置：默认使用相对路径（适合代理或同源部署）
+
+## 6.4 启动开发环境
 
 启动后端：
 
@@ -99,25 +148,25 @@ pnpm --dir backend start:dev
 pnpm --dir front dev
 ```
 
-默认访问：
+默认访问地址：
 
 - 前端：`http://localhost:5173`
 - 后端：`http://localhost:3001`
 
 ---
 
-## 4. 后端接口说明
+## 7. 接口文档（重点）
 
-后端主要提供两类接口：聊天、知识库管理。
+## 7.1 聊天接口
 
-### 4.1 聊天接口
+### `POST /ai/chat`
 
-#### `POST /ai/chat`
+用途：发起流式问答。
 
-- 说明：流式聊天接口
-- 鉴权：当配置 `FRIEND_API_KEY` 时，必须携带以下任一请求头  
-  - `Authorization: Bearer <FRIEND_API_KEY>`
-  - `X-Friend-Api-Key: <FRIEND_API_KEY>`
+当配置 `FRIEND_API_KEY` 时，请求头需包含以下任一方式：
+
+- `Authorization: Bearer <FRIEND_API_KEY>`
+- `X-Friend-Api-Key: <FRIEND_API_KEY>`
 
 请求体示例：
 
@@ -127,40 +176,49 @@ pnpm --dir front dev
     {
       "id": "u1",
       "role": "user",
-      "parts": [{ "type": "text", "text": "你好，介绍一下你自己" }]
+      "parts": [{ "type": "text", "text": "你好，请介绍一下我自己" }]
     }
   ]
 }
 ```
 
-### 4.2 知识库接口
+返回：流式响应（SSE/流输出）。
 
-#### `POST /knowledge/ingest/file`
+## 7.2 文件入库接口
 
-- 说明：上传文件并入库（支持 `txt/pdf/docx`）
-- 方式：`multipart/form-data`，字段名必须是 `file`
-- 可选 query：
-  - `replace=1`（默认）：先删除同名旧数据，再写入新数据
-  - `replace=0`：不删除旧数据，直接追加
+### `POST /knowledge/ingest/file`
 
-curl 示例：
+用途：上传简历或文本资料并写入知识库。
+
+- 请求类型：`multipart/form-data`
+- 文件字段名：`file`
+- 支持类型：`txt / pdf / docx`
+
+Query 参数：
+
+- `replace=1`（默认）：同名覆盖（先删旧分块再写新分块）
+- `replace=0`：追加（不删除旧分块）
+
+示例：
 
 ```bash
 curl -X POST "http://localhost:3001/knowledge/ingest/file?replace=1" \
   -F "file=@./resume.pdf"
 ```
 
-返回重点字段：
+关键返回字段：
 
-- `chunksIndexed`：新增分块数量
-- `deletedChunks`：覆盖模式下删除的旧分块数
-- `qualityReport`：入库质量检查结果
+- `chunksIndexed`：本次新增分块数量
+- `deletedChunks`：覆盖时删除的旧分块数量
+- `qualityReport`：入库质量检测结果
 
-#### `POST /knowledge/ingest/github`
+## 7.3 GitHub 入库接口
 
-- 说明：拉取 GitHub 用户公开仓库内容（含 README）并入库
+### `POST /knowledge/ingest/github`
 
-请求体示例：
+用途：抓取 GitHub 公开仓库内容并入库。
+
+请求体：
 
 ```json
 {
@@ -169,16 +227,16 @@ curl -X POST "http://localhost:3001/knowledge/ingest/file?replace=1" \
 }
 ```
 
-参数说明：
+参数：
 
 - `username`：必填，GitHub 用户名
-- `maxRepos`：可选，范围 1~50，默认 15
+- `maxRepos`：可选，范围 `1~50`，默认 `15`
 
-#### `POST /knowledge/quality-check`
+## 7.4 手动质检接口
 
-- 说明：手动触发入库质量检查
+### `POST /knowledge/quality-check`
 
-文件入库检查：
+文件数据质检示例：
 
 ```json
 {
@@ -187,7 +245,7 @@ curl -X POST "http://localhost:3001/knowledge/ingest/file?replace=1" \
 }
 ```
 
-GitHub 入库检查：
+GitHub 数据质检示例：
 
 ```json
 {
@@ -198,68 +256,59 @@ GitHub 入库检查：
 
 ---
 
-## 5. 前端功能说明
+## 8. 前端功能说明
 
-`front` 当前主要功能：
+当前前端页面支持：
 
-- 聊天对话（流式响应、暂停/恢复、错误提示）
-- 代表项目快捷提问（角色/难点/结果）
-- 上传/重传简历并入库
-- 同步指定 GitHub 用户公开仓库并入库
-- 选中文本后“引用提问”
-
----
-
-## 6. 常见问题
-
-### Q1: 上传文件时报“未配置 Qdrant”
-
-请检查 `backend/.env` 是否正确配置 `QDRANT_URL`（云端还需 `QDRANT_API_KEY`）。
-
-### Q2: 调用接口 401
-
-如果设置了 `FRIEND_API_KEY`，请求必须携带 `Authorization: Bearer ...` 或 `X-Friend-Api-Key`。
-
-### Q3: 前端连不上后端
-
-确认后端已启动；开发时可用 `VITE_API_BASE` 指向后端，或留空走 Vite 对 `/ai`、`/knowledge` 的代理。Docker 部署时默认同源反代，一般无需设置 `VITE_API_BASE`。  
-跨域由后端 CORS 控制；当前默认放开。
+- 聊天问答（流式展示）
+- 代表项目卡片与快捷问题按钮（角色 / 难点 / 结果）
+- 简历上传与重传（知识库更新）
+- GitHub 用户仓库同步入库
+- 引用内容继续追问
 
 ---
 
-## 7. Docker 部署（服务器）
+## 9. Docker 部署
 
-在项目根目录准备 `backend/.env`（与本地开发相同变量，见上文「配置环境变量」）。**不要**把真实密钥提交到 Git。
-
-可选：在根目录放置 `.env`（供 Compose 替换变量，不会进入镜像），示例：
-
-```env
-# 映射宿主机端口（前端 Nginx），默认 3001
-HTTP_PORT=3001
-
-# 构建前端时注入（Clerk 等）；不设则按空字符串构建
-VITE_CLERK_PUBLISHABLE_KEY=
-VITE_CLERK_ENABLED=
-
-# 前端 API 根地址。默认留空：浏览器访问同源路径 /ai、/knowledge（由 Nginx 反代到后端）
-# 若前后端不同域名，设为完整 URL，例如 https://api.example.com
-# VITE_API_BASE=
-```
-
-启动（构建并后台运行）：
+在根目录准备好 `backend/.env` 后执行：
 
 ```bash
 docker compose up -d --build
 ```
 
-- 页面：`http://<服务器IP>:${HTTP_PORT:-3001}`
-- 后端仅暴露在 Compose 网络内，由前端容器通过服务名 `backend:3001` 访问；聊天流式接口在 Nginx 中已关闭缓冲。
+可选在根目录新增 `.env` 作为 compose 变量：
 
-单独重建某服务：`docker compose up -d --build backend` 或 `frontend`。
+```env
+HTTP_PORT=3001
+VITE_CLERK_PUBLISHABLE_KEY=
+VITE_CLERK_ENABLED=
+# VITE_API_BASE=
+```
+
+部署说明：
+
+- 页面访问：`http://<服务器IP>:${HTTP_PORT:-3001}`
+- 前端通过 Nginx 同源反代访问后端（`/ai`、`/knowledge`）
 
 ---
 
-## 8. 开发命令速查
+## 10. 常见问题（FAQ）
+
+### Q1：上传文件提示未配置 Qdrant
+
+检查 `backend/.env` 中 `QDRANT_URL` 和 `QDRANT_API_KEY` 是否正确。
+
+### Q2：接口返回 401
+
+若已配置 `FRIEND_API_KEY`，请求必须带鉴权头。
+
+### Q3：前端调用失败或跨域
+
+优先确认后端是否启动，再检查 `VITE_API_BASE` 与代理配置是否一致。
+
+---
+
+## 11. 常用命令速查
 
 后端：
 
@@ -276,3 +325,11 @@ pnpm --dir front dev
 pnpm --dir front build
 pnpm --dir front preview
 ```
+
+---
+
+## 12. 迭代建议（后续可做）
+
+- 增加“知识库版本历史”与回滚能力
+- 增加“入库任务状态面板”（排队、成功、失败、耗时）
+- 增加“答案溯源片段高亮”，提升可解释性
