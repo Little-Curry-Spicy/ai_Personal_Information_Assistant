@@ -1,0 +1,553 @@
+.chat-tool-wrap {
+  max-width: min(100%, 640px);
+}
+
+/* —— 基础容器（纸感平面 + 低对比描边，呼应 DESIGN.md） —— */
+.tool-panel {
+  position: relative;
+  border-radius: 16px;
+  text-align: left;
+  padding: 16px 18px 18px;
+  overflow: hidden;
+  border: 1px solid var(--border-warm);
+  background: var(--social-bg);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ring-warm) 55%, transparent),
+    rgba(0, 0, 0, 0.05) 0 4px 24px;
+  animation: chat-bubble-in 0.38s var(--ease-out-quart) both;
+}
+
+.tool-panel::before {
+  display: none;
+}
+
+.tool-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 联网搜索：暖色纸面 + 轻微陶土 tint */
+.tool-panel.tool-panel--web-search {
+  border-color: var(--border-warm);
+  background-color: var(--tool-panel-bg);
+  background-image: none;
+}
+
+.tool-panel.tool-panel--web-search::before {
+  display: none;
+}
+
+/* 发送邮件：muted green 纸面，低饱和、与联网搜索区分 */
+.tool-panel.tool-panel--send-mail {
+  --mail-accent: var(--tool-mail-accent);
+  border-color: color-mix(in srgb, var(--mail-accent) 28%, var(--border-warm));
+  background-color: var(--tool-mail-bg);
+  background-image: none;
+}
+
+.tool-panel.tool-panel--send-mail::before {
+  display: none;
+}
+
+.tool-panel--send-mail .tool-panel__head--send-mail {
+  background: color-mix(in srgb, var(--bg) 55%, var(--tool-mail-bg-2));
+  border-color: color-mix(in srgb, var(--mail-accent) 22%, var(--border-warm));
+}
+
+.tool-panel__label--send-mail {
+  color: var(--charcoal-warm);
+  background: color-mix(in srgb, var(--mail-accent) 12%, var(--bg));
+  border-color: color-mix(in srgb, var(--mail-accent) 25%, var(--border-warm));
+}
+
+.tool-panel__mail-subject-hint {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-h);
+  line-height: 1.35;
+}
+
+.tool-panel__mail-fields {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.tool-panel__mail-row {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  gap: 10px 14px;
+  align-items: baseline;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.tool-panel__mail-row dt {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  opacity: 0.85;
+}
+
+.tool-panel__mail-row dd {
+  margin: 0;
+  color: var(--text-h);
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.tool-panel__mail-body-block {
+  margin-top: 12px;
+}
+
+.tool-panel__mail-body-caption {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mail-accent);
+  margin-bottom: 6px;
+}
+
+.tool-panel__mail-body-scroll {
+  max-height: 220px;
+  overflow: auto;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--mail-accent) 22%, var(--border));
+  background: color-mix(in srgb, var(--bg) 55%, var(--tool-mail-bg));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-h) 5%, transparent);
+}
+
+.tool-panel__mail-text {
+  margin: 0;
+  padding: 12px 14px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-h);
+}
+
+.tool-panel__mail-html {
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-h);
+}
+
+.tool-panel__mail-status {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-h);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--mail-accent) 10%, var(--bg)) 0%,
+    color-mix(in srgb, var(--mail-accent) 6%, var(--tool-mail-bg-2)) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--mail-accent) 26%, var(--border));
+}
+
+.tool-panel__mail-status--progress {
+  font-size: 13px;
+  color: var(--text);
+  font-style: italic;
+  background: color-mix(in srgb, var(--mail-accent) 8%, var(--tool-mail-bg));
+  animation: tool-panel-mail-footer-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes tool-panel-mail-footer-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.82;
+  }
+}
+
+.tool-panel.tool-panel--send-mail.tool-panel--send-mail-streaming {
+  border-color: color-mix(in srgb, var(--mail-accent) 40%, var(--border));
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--text-h) 5%, transparent),
+    0 10px 28px -10px color-mix(in srgb, var(--mail-accent) 22%, transparent);
+}
+
+.tool-panel__mail-body-scroll--empty {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 52px;
+  padding: 12px 14px;
+}
+
+.tool-panel__mail-body-placeholder {
+  font-size: 13px;
+  color: var(--text);
+  opacity: 0.65;
+}
+
+.tool-panel__mail-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 1px;
+  vertical-align: -0.12em;
+  background: var(--mail-accent);
+  border-radius: 1px;
+  animation: tool-panel-mail-cursor 1s step-end infinite;
+}
+
+.tool-panel__mail-cursor--inline {
+  vertical-align: -0.05em;
+}
+
+.tool-panel__mail-cursor--block {
+  margin-left: 2px;
+}
+
+@keyframes tool-panel-mail-cursor {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.tool-panel--web-search .tool-panel__head {
+  background: color-mix(in srgb, var(--bg) 40%, var(--tool-panel-bg-2));
+  border-color: color-mix(in srgb, var(--accent) 18%, var(--border-warm));
+}
+
+.tool-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  margin: -4px -6px 14px;
+  padding: 10px 12px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg) 65%, var(--ivory));
+  border: 1px solid var(--border-cream);
+  box-shadow: none;
+}
+
+.tool-panel__label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--charcoal-warm);
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--warm-sand);
+  border: 1px solid var(--ring-warm);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tool-panel__label-icon {
+  flex-shrink: 0;
+  opacity: 0.92;
+}
+
+.tool-panel__label--error {
+  background: color-mix(in srgb, var(--error-crimson) 12%, var(--ivory));
+  border-color: color-mix(in srgb, var(--error-crimson) 35%, var(--ring-warm));
+  color: var(--text-h);
+}
+
+.tool-panel__query {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+.tool-panel__count {
+  font-weight: 500;
+  color: var(--text);
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.tool-panel__results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tool-panel__result {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-cream);
+  background: var(--bg);
+  box-shadow: rgba(0, 0, 0, 0.04) 0 2px 12px;
+  transition:
+    border-color 0.2s var(--ease-out-quart),
+    box-shadow 0.2s var(--ease-out-quart),
+    transform var(--dur-feedback) var(--ease-out-quart);
+}
+
+.tool-panel__result:hover {
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--border-warm));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ring-warm) 70%, transparent),
+    rgba(0, 0, 0, 0.06) 0 6px 18px;
+  transform: translateY(-1px);
+}
+
+.tool-panel__ref {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--charcoal-warm);
+  margin-bottom: 8px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--warm-sand);
+}
+
+.tool-panel__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-h);
+  line-height: 1.45;
+  margin-bottom: 8px;
+}
+
+.tool-panel__url {
+  display: block;
+  font-size: 12px;
+  word-break: break-all;
+  color: color-mix(in srgb, var(--terracotta) 85%, var(--charcoal-warm));
+  text-decoration: none;
+  margin-bottom: 10px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--terracotta) 8%, var(--code-bg));
+  border: 1px solid var(--border-cream);
+  transition: background 0.15s ease;
+}
+
+.tool-panel__url:hover {
+  text-decoration: none;
+  background: color-mix(in srgb, var(--terracotta) 14%, var(--code-bg));
+}
+
+.tool-panel__summary {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.tool-panel__site {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 8%, var(--bg));
+}
+
+.tool-panel__time {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.75;
+}
+
+.tool-panel__raw {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-h);
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--code-bg) 85%, var(--accent));
+  border: 1px solid var(--border);
+}
+
+/* —— 等待中 —— */
+.tool-panel--pending {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border-warm));
+  background: color-mix(in srgb, var(--accent) 6%, var(--social-bg));
+  animation: tool-panel-pulse 1.4s ease-in-out infinite;
+  box-shadow: rgba(0, 0, 0, 0.06) 0 6px 20px;
+}
+
+.tool-panel--pending::before {
+  display: none;
+}
+
+.tool-panel.tool-panel--pending-mail {
+  border-color: color-mix(in srgb, var(--tool-mail-accent) 30%, var(--border-warm));
+  background: color-mix(in srgb, var(--tool-mail-accent) 8%, var(--social-bg));
+  box-shadow: rgba(0, 0, 0, 0.05) 0 6px 20px;
+  animation: tool-panel-pulse-mail 1.4s ease-in-out infinite;
+}
+
+.tool-panel.tool-panel--pending-mail::before {
+  display: none;
+}
+
+@keyframes tool-panel-pulse-mail {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.84;
+  }
+}
+
+.tool-panel__pending-text {
+  font-size: 14px;
+  color: var(--text);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.tool-panel__pending-icon {
+  color: var(--accent);
+  opacity: 0.95;
+}
+
+.tool-panel__pending-text strong {
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+@keyframes tool-panel-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.82;
+  }
+}
+
+/* —— 错误 —— */
+.tool-panel--error {
+  border-color: color-mix(in srgb, var(--error-crimson) 45%, var(--border-warm));
+  background: color-mix(in srgb, var(--error-crimson) 10%, var(--ivory));
+  box-shadow: rgba(0, 0, 0, 0.05) 0 6px 20px;
+}
+
+.tool-panel--error::before {
+  display: none;
+}
+
+.tool-panel__err-msg {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--text-h);
+  line-height: 1.45;
+}
+
+/* —— 默认 JSON / 文本 —— */
+.tool-panel--default::before {
+  display: none;
+}
+
+.tool-panel--default {
+  overflow: auto;
+  max-height: 320px;
+  padding: 14px 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.45;
+  background: var(--code-bg);
+  border: 1px solid var(--border-warm);
+  box-shadow: none;
+}
+
+.tool-panel__default-hint {
+  display: block;
+  margin: 0 0 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-cream);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+@media (prefers-color-scheme: dark) {
+  .tool-panel {
+    border-color: var(--dark-surface);
+    box-shadow: rgba(0, 0, 0, 0.35) 0 8px 28px;
+  }
+
+  .tool-panel__head {
+    background: color-mix(in srgb, var(--bg) 75%, var(--near-black));
+    border-color: var(--dark-surface);
+  }
+
+  .tool-panel__label {
+    color: var(--warm-silver);
+    background: var(--dark-surface);
+    border-color: color-mix(in srgb, var(--warm-silver) 15%, var(--near-black));
+  }
+
+  .tool-panel__label--send-mail {
+    color: var(--warm-silver);
+    background: color-mix(in srgb, var(--tool-mail-accent) 18%, var(--near-black));
+    border-color: color-mix(in srgb, var(--tool-mail-accent) 28%, var(--dark-surface));
+  }
+
+  .tool-panel__ref {
+    color: var(--warm-silver);
+    background: var(--near-black);
+  }
+
+  .tool-panel__result {
+    border-color: var(--dark-surface);
+    background: var(--bg);
+  }
+
+  .tool-panel__url {
+    color: var(--coral);
+    background: color-mix(in srgb, var(--coral) 10%, var(--code-bg));
+    border-color: var(--dark-surface);
+  }
+
+  .tool-panel--error {
+    border-color: color-mix(in srgb, var(--error-crimson) 55%, var(--dark-surface));
+    background: color-mix(in srgb, var(--error-crimson) 14%, var(--near-black));
+  }
+
+  .tool-panel__label--error {
+    background: color-mix(in srgb, var(--error-crimson) 18%, var(--near-black));
+    border-color: color-mix(in srgb, var(--error-crimson) 40%, var(--dark-surface));
+    color: var(--ivory);
+  }
+
+  .tool-panel--default {
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--warm-silver) 8%, transparent);
+  }
+}

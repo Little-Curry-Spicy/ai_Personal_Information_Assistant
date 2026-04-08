@@ -1,0 +1,123 @@
+/* Streamdown 本体用 Tailwind 类渲染；此处只做聊天区容器级微调 */
+
+.chat-streamdown {
+  text-align: left;
+  max-width: 100%;
+}
+
+.chat-streamdown__inner {
+  /* 与气泡内正文字号协调 */
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* 段落与表格/代码块之间的呼吸感（Streamdown 块级间距由组件自带，这里补一层保险） */
+.chat-streamdown__inner :where(p + [data-streamdown='table-wrapper']),
+.chat-streamdown__inner :where(p + [data-streamdown='code-block']),
+.chat-streamdown__inner :where([data-streamdown='table-wrapper'] + p) {
+  margin-top: 0.5rem;
+}
+
+/* Shiki 的 pre 也需保留换行（避免被其它全局样式影响） */
+.chat-streamdown [data-streamdown='code-block'] pre {
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+.chat-link-safety {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 999;
+  width: min(460px, calc(100vw - 24px));
+}
+
+.chat-link-safety__card {
+  position: relative;
+  border: 1px solid var(--border-warm);
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--text-h);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.14),
+    0 0 0 1px color-mix(in srgb, var(--ring-warm) 35%, transparent);
+  padding: 14px 14px 12px;
+}
+
+.chat-link-safety__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--stone-gray, var(--text));
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-link-safety__close:hover {
+  background: color-mix(in srgb, var(--border-warm) 42%, transparent);
+}
+
+.chat-link-safety__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.chat-link-safety__desc {
+  margin: 8px 0 12px;
+  font-size: 13px;
+  color: var(--stone-gray, var(--text));
+}
+
+.chat-link-safety__url {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border: 1px solid var(--border-warm);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--warm-sand) 38%, var(--bg));
+  padding: 10px;
+  font-size: 13px;
+}
+
+.chat-link-safety__url span {
+  word-break: break-all;
+}
+
+.chat-link-safety__actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.chat-link-safety__btn {
+  border: none;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-link-safety__btn--ghost {
+  background: color-mix(in srgb, var(--warm-sand) 60%, var(--bg));
+  color: var(--charcoal-warm);
+}
+
+.chat-link-safety__btn--primary {
+  background: var(--terracotta);
+  color: var(--ivory);
+}

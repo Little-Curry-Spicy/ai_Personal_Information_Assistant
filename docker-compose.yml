@@ -1,0 +1,27 @@
+# 在项目根目录执行：docker compose up -d --build
+# 事先在 backend/.env 中配置密钥（勿提交到 Git）
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      PORT: '3001'
+    expose:
+      - '3001'
+
+  frontend:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+      args:
+        VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:-}
+        VITE_CLERK_ENABLED: ${VITE_CLERK_ENABLED:-}
+        # 与 compose 默认方案一致时可留空（浏览器打同源 /ai、/knowledge）
+        VITE_API_BASE: ${VITE_API_BASE:-}
+    restart: unless-stopped
+    ports:
+      - '${HTTP_PORT:-3001}:80'
+    depends_on:
+      - backend

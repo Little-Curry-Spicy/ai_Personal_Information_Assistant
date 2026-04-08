@@ -1,0 +1,284 @@
+@import 'tailwindcss';
+
+/* 让 Tailwind 扫描 Streamdown 源码中的 class，否则表格/代码块等工具类不会生成 */
+@source '../node_modules/streamdown/dist/**/*.js';
+@source '../node_modules/@streamdown/code/dist/**/*.js';
+@source '../node_modules/@streamdown/mermaid/dist/**/*.js';
+
+/* Streamdown 使用 dark: 前缀，与系统深色模式对齐 */
+@variant dark (@media (prefers-color-scheme: dark));
+
+/* front/design/DESIGN.md — Claude 风格暖色纸感系统（非官方，仅视觉参照） */
+:root {
+  /* 核心色板 */
+  --parchment: #f5f4ed;
+  --ivory: #faf9f5;
+  --near-black: #141413;
+  --olive-gray: #5e5d59;
+  --stone-gray: #87867f;
+  --charcoal-warm: #4d4c48;
+  --border-cream: #f0eee6;
+  --border-warm: #e8e6dc;
+  --warm-sand: #e8e6dc;
+  --terracotta: #c96442;
+  --coral: #d97757;
+  --focus-blue: #3898ec;
+  --error-crimson: #b53333;
+  --dark-surface: #30302e;
+  --warm-silver: #b0aea5;
+  --ring-warm: #d1cfc5;
+
+  /* 映射到应用语义（组件仍用这些变量名） */
+  --text: var(--olive-gray);
+  --text-h: var(--near-black);
+  --bg: #ffffff;
+  --border: var(--border-cream);
+  --code-bg: color-mix(in srgb, var(--warm-sand) 55%, var(--ivory));
+  --accent: var(--terracotta);
+  --accent-bg: color-mix(in srgb, var(--terracotta) 14%, var(--ivory));
+  --accent-border: color-mix(in srgb, var(--terracotta) 42%, var(--border-warm));
+  --social-bg: var(--ivory);
+  /* 联网搜索：暖纸色上的轻微陶土 tint，避免紫/青科技色 */
+  --tool-panel-bg: color-mix(in srgb, var(--terracotta) 6%, var(--ivory));
+  --tool-panel-bg-2: color-mix(in srgb, var(--terracotta) 3%, var(--parchment));
+  /* 邮件： muted green（DESIGN 插图色系），低饱和、与陶土区分 */
+  --tool-mail-bg: #e8ebe4;
+  --tool-mail-bg-2: #dde3d9;
+  --tool-mail-accent: #5a6b58;
+
+  --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --heading: Georgia, 'Times New Roman', serif;
+  --mono: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
+
+  /* Streamdown / 语义别名 */
+  --background: var(--parchment);
+  --foreground: var(--text-h);
+  --card: var(--ivory);
+  --card-foreground: var(--text-h);
+  --muted: var(--social-bg);
+  --muted-foreground: var(--text);
+  --input: var(--border-warm);
+  --primary: var(--accent);
+  --primary-foreground: var(--ivory);
+  --sidebar: var(--ivory);
+  --sidebar-foreground: var(--text-h);
+  --radius: 0.75rem;
+
+  /* 动效：自然减速（animate skill / frontend-design） */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-feedback: 150ms;
+  --dur-enter: 420ms;
+
+  font: 17px/1.6 var(--sans);
+  letter-spacing: 0.01em;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--parchment);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: var(--warm-silver);
+    --text-h: var(--ivory);
+    --bg: var(--dark-surface);
+    --border: color-mix(in srgb, var(--dark-surface) 88%, var(--near-black));
+    --code-bg: color-mix(in srgb, var(--near-black) 72%, var(--dark-surface));
+    --accent: var(--coral);
+    --accent-bg: color-mix(in srgb, var(--terracotta) 18%, var(--near-black));
+    --accent-border: color-mix(in srgb, var(--coral) 40%, var(--dark-surface));
+    --social-bg: color-mix(in srgb, var(--ivory) 6%, var(--dark-surface));
+    --tool-panel-bg: color-mix(in srgb, var(--terracotta) 12%, var(--near-black));
+    --tool-panel-bg-2: color-mix(in srgb, var(--terracotta) 8%, var(--dark-surface));
+    --tool-mail-bg: color-mix(in srgb, #5a6b58 14%, var(--near-black));
+    --tool-mail-bg-2: color-mix(in srgb, #5a6b58 10%, var(--dark-surface));
+    --tool-mail-accent: #8f9e8c;
+    --sidebar: var(--dark-surface);
+    --sidebar-foreground: var(--text-h);
+    --primary-foreground: var(--ivory);
+    --card: var(--dark-surface);
+    --background: var(--near-black);
+  }
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+#root {
+  width: 100%;
+  max-width: 1200px;
+  margin: 16px auto;
+  text-align: center;
+  border-inline: 1px solid var(--border-warm);
+  height: calc(100svh - 32px);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  border-radius: 16px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ivory) 35%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ring-warm) 65%, transparent),
+    0 4px 24px rgba(0, 0, 0, 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  #root {
+    background: color-mix(in srgb, var(--dark-surface) 40%, transparent);
+    border-inline-color: var(--dark-surface);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--warm-silver) 12%, var(--near-black)),
+      0 4px 28px rgba(0, 0, 0, 0.35);
+  }
+}
+
+body {
+  margin: 0;
+  box-sizing: border-box;
+  min-height: 100svh;
+  overflow: hidden;
+}
+
+h1 {
+  font-family: var(--heading);
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--text-h);
+}
+
+p {
+  margin: 0;
+}
+
+code {
+  font-family: var(--mono);
+}
+
+/* 行内 `code`（段落/列表等），勿作用于 Streamdown+Shiki 的 fenced 代码块 */
+p code,
+li code,
+td code,
+th code,
+h1 code,
+h2 code,
+h3 code,
+blockquote code {
+  display: inline-flex;
+  align-items: baseline;
+  border-radius: 4px;
+  color: var(--text-h);
+  font-size: 0.92em;
+  line-height: 135%;
+  padding: 2px 6px;
+  background: var(--code-bg);
+}
+
+/* 代码块：必须块级 + 保留换行，覆盖上面任何误匹配 */
+pre code,
+[data-streamdown='code-block'] code {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+/* —— 入场与反馈（仅 opacity / transform） —— */
+@keyframes app-strip-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes chat-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes icon-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ui-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.ui-icon--spin {
+  animation: icon-spin 0.85s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-app > *,
+  .chat-bubble,
+  .chat-empty,
+  .knowledge-panel,
+  .tool-panel,
+  .chat-error {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .ui-icon--spin {
+    animation: none !important;
+  }
+
+  .motion-press:active {
+    transform: none !important;
+  }
+
+  .knowledge-panel__file-label:hover span,
+  .knowledge-panel__file-label:active span,
+  .knowledge-panel__btn:hover,
+  .knowledge-panel__btn:active {
+    transform: none !important;
+  }
+
+  .tool-panel__result:hover {
+    transform: none !important;
+  }
+}

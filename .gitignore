@@ -1,0 +1,9 @@
+.DS_Store
+.vite/
+node_modules/
+dist/
+**/dist/
+*-lock.json
+*-lock.*
+*.lock
+*.env*
