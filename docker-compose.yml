@@ -18,8 +18,10 @@ services:
       args:
         VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:-}
         VITE_CLERK_ENABLED: ${VITE_CLERK_ENABLED:-}
-        # 与 compose 默认方案一致时可留空（浏览器打同源 /ai、/knowledge）
-        VITE_API_BASE: ${VITE_API_BASE:-}
+        # 子路径部署到 /info 时，API 走 /info/ai 与 /info/knowledge
+        VITE_API_BASE: ${VITE_API_BASE:-/info}
+        # 线上默认挂在 /info/ 子路径；若改为根路径可在环境变量覆盖为 /
+        VITE_APP_BASE: ${VITE_APP_BASE:-/info/}
     restart: unless-stopped
     ports:
       - '${HTTP_PORT:-3001}:80'
