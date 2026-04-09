@@ -6,4 +6,7 @@ dist/
 *-lock.json
 *-lock.*
 *.lock
-*.env*
+*.env
+*.env.*
+!*.env.example
+!**/.env.example

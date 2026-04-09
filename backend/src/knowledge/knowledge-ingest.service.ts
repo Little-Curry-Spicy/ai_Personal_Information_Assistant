@@ -6,7 +6,7 @@ import { chunkText } from './chunk-text.util';
 import { EmbeddingService } from './embedding.service';
 import { GithubPublicService } from './github-public.service';
 import { KnowledgeQualityService, type QualityReport } from './knowledge-quality.service';
-import { QdrantService } from './qdrant.service';
+import { type KnowledgeKind, QdrantService } from './qdrant.service';
 
 const CHUNK_CHARS = 1200;
 const CHUNK_OVERLAP = 200;
@@ -32,7 +32,7 @@ export class KnowledgeIngestService {
 
   private async upsertChunks(
     chunks: string[],
-    baseMetadata: Record<string, string>,
+    baseMetadata: Record<string, string> & { kind: KnowledgeKind },
   ): Promise<number> {
     if (!chunks.length) return 0;
     const prepared = chunks.map((raw) => {
@@ -53,6 +53,7 @@ export class KnowledgeIngestService {
           vector: sliceVec[j]!,
           payload: p.payload,
         })),
+        baseMetadata.kind,
       );
     }
     return chunks.length;

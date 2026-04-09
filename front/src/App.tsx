@@ -94,6 +94,7 @@ function ChatApp(props: ChatAppProps = {}) {
   const [paused, setPaused] = useState(false)
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [replaceExistingKnowledge, setReplaceExistingKnowledge] = useState(true)
 
   const busy = status === 'submitted' || status === 'streaming'
   const busyActive = busy && !paused
@@ -171,6 +172,15 @@ function ChatApp(props: ChatAppProps = {}) {
     })
   }, [messages, busyActive])
 
+  // 每次回答完成（状态回到 ready）后，自动把焦点放回输入框。
+  useEffect(() => {
+    if (status !== 'ready') return
+    if (paused) return
+    window.requestAnimationFrame(() => {
+      inputRef.current?.focus()
+    })
+  }, [status, paused])
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 p-3 text-left">
       <header className="sticky top-0 z-20 flex items-center justify-between rounded-xl border border-[var(--border-warm)] bg-[var(--bg)] px-4 py-3">
@@ -214,6 +224,8 @@ function ChatApp(props: ChatAppProps = {}) {
           uploadBusy={uploadBusy}
           selectedResumeName={selectedResumeName}
           onUploadResume={uploadResume}
+          replaceExistingKnowledge={replaceExistingKnowledge}
+          onReplaceExistingKnowledgeChange={setReplaceExistingKnowledge}
           onSetSelectedResumeName={setSelectedResumeName}
           githubUser={githubUser}
           onGithubUserChange={setGithubUser}

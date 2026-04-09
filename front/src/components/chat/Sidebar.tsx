@@ -25,6 +25,8 @@ type SidebarProps = {
   uploadBusy: boolean
   selectedResumeName: string | null
   onUploadResume: (file?: File | null, replaceExisting?: boolean) => Promise<void>
+  replaceExistingKnowledge: boolean
+  onReplaceExistingKnowledgeChange: (value: boolean) => void
   onSetSelectedResumeName: (name: string | null) => void
   githubUser: string
   onGithubUserChange: (value: string) => void
@@ -44,6 +46,8 @@ export function Sidebar({
   uploadBusy,
   selectedResumeName,
   onUploadResume,
+  replaceExistingKnowledge,
+  onReplaceExistingKnowledgeChange,
   onSetSelectedResumeName,
   githubUser,
   onGithubUserChange,
@@ -159,6 +163,18 @@ export function Sidebar({
               知识库更新（支持重新上传简历覆盖旧版本）
             </div>
             <div className="mt-3 flex flex-col gap-2">
+              <label className="inline-flex items-center gap-2 rounded-md border border-[var(--border-warm)] bg-[var(--ivory)] px-3 py-2 text-xs text-[var(--text)]">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-[var(--terracotta)]"
+                  checked={replaceExistingKnowledge}
+                  onChange={(e) => onReplaceExistingKnowledgeChange(e.target.checked)}
+                  disabled={uploadBusy}
+                />
+                <span>
+                  {replaceExistingKnowledge ? '覆盖模式（会删除同名旧分块）' : '追加模式（保留旧分块）'}
+                </span>
+              </label>
               <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-[var(--border-warm)] bg-[var(--ivory)] px-3 py-2 text-sm text-[var(--text-h)] hover:bg-[var(--warm-sand)]">
                 <FileUp size={14} strokeWidth={2} aria-hidden />
                 {uploadBusy ? '上传中…' : '上传/重传简历'}
@@ -170,7 +186,7 @@ export function Sidebar({
                   onChange={(e) => {
                     const file = e.target.files?.[0] ?? null
                     onSetSelectedResumeName(file?.name ?? null)
-                    void onUploadResume(file, true)
+                    void onUploadResume(file, replaceExistingKnowledge)
                     e.currentTarget.value = ''
                   }}
                 />

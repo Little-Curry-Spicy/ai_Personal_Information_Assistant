@@ -44,11 +44,10 @@ export function ChatComposer({
     ? '已暂停，可继续输入'
     : status === 'ready'
       ? '就绪'
-      : status === 'submitted'
-        ? '已发送…'
-        : status === 'streaming'
-          ? '生成中…'
-          : '出错'
+      : status === 'submitted' || status === 'streaming'
+        ? 'thinking...'
+        : '出错'
+  const isThinking = !paused && (status === 'submitted' || status === 'streaming')
 
   return (
     <form className="mt-2" onSubmit={onSubmit}>
@@ -90,7 +89,16 @@ export function ChatComposer({
           {busyActive && (
             <Bot className="animate-spin" size={14} strokeWidth={2} aria-hidden />
           )}
-          {statusText}
+          {isThinking ? (
+            <span className="thinking-inline gap-0.5">
+              <span className="thinking-word">Thinking</span>
+              <span className="thinking-dot">.</span>
+              <span className="thinking-dot thinking-dot--2">.</span>
+              <span className="thinking-dot thinking-dot--3">.</span>
+            </span>
+          ) : (
+            statusText
+          )}
         </span>
         <button
           type="submit"

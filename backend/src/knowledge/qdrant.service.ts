@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { QdrantClient } from '@qdrant/js-client-rest';
 
+export type KnowledgeKind = 'file' | 'github';
+
 export type QdrantSearchHit = {
   score: number;
   payload: Record<string, unknown> | undefined;
@@ -15,7 +17,7 @@ type QdrantScrollPoint = {
 @Injectable()
 export class QdrantService {
   private client: QdrantClient | null = null;
-  private collectionReady: Promise<void> | null = null;
+  private readonly collectionReady = new Map<string, Promise<void>>();
 
   constructor(private readonly config: ConfigService) {}
 
@@ -29,6 +31,24 @@ export class QdrantService {
       this.config.get<string>('QDRANT_COLLECTION')?.trim() ||
       'personal_intro'
     );
+  }
+
+  private getCollectionByKind(kind: KnowledgeKind): string {
+    if (kind === 'file') {
+      return (
+        this.config.get<string>('QDRANT_COLLECTION_FILE')?.trim() ||
+        this.getCollectionName()
+      );
+    }
+    return (
+      this.config.get<string>('QDRANT_COLLECTION_GITHUB')?.trim() ||
+      this.getCollectionName()
+    );
+  }
+
+  private getCollectionTargets(kind?: KnowledgeKind): string[] {
+    if (kind) return [this.getCollectionByKind(kind)];
+    return [...new Set([this.getCollectionByKind('file'), this.getCollectionByKind('github')])];
   }
 
   private embeddingDimensions(): number {
@@ -58,21 +78,24 @@ export class QdrantService {
    * 确保 Collection 存在（与 EMBEDDING_DIMENSIONS 一致的余弦空间）。
    * 并发首次调用时若已存在则忽略创建冲突。
    */
-  async ensureCollection(): Promise<void> {
-    if (!this.collectionReady) {
-      this.collectionReady = this.doEnsureCollection();
+  async ensureCollection(name: string): Promise<void> {
+    if (!this.collectionReady.has(name)) {
+      this.collectionReady.set(name, this.doEnsureCollection(name));
     }
     try {
-      await this.collectionReady;
+      await this.collectionReady.get(name);
     } catch {
-      this.collectionReady = null;
-      throw new Error('Failed to ensure collection');
+      this.collectionReady.delete(name);
+      throw new Error(`Failed to ensure collection: ${name}`);
     }
   }
 
-  private async doEnsureCollection(): Promise<void> {
+  private async ensureCollections(names: string[]): Promise<void> {
+    await Promise.all(names.map((n) => this.ensureCollection(n)));
+  }
+
+  private async doEnsureCollection(name: string): Promise<void> {
     const c = this.getClient();
-    const name = this.getCollectionName();
     const { collections } = await c.getCollections();
     if (collections.some((col) => col.name === name)) return;
     try {
@@ -94,11 +117,12 @@ export class QdrantService {
       vector: number[];
       payload: Record<string, string>;
     }>,
+    kind: KnowledgeKind,
   ): Promise<void> {
     if (!points.length) return;
-    await this.ensureCollection();
+    const name = this.getCollectionByKind(kind);
+    await this.ensureCollection(name);
     const c = this.getClient();
-    const name = this.getCollectionName();
     await c.upsert(name, {
       wait: true,
       points: points.map((p) => ({
@@ -109,25 +133,38 @@ export class QdrantService {
     });
   }
 
-  async search(vector: number[], limit: number): Promise<QdrantSearchHit[]> {
-    await this.ensureCollection();
+  async search(
+    vector: number[],
+    limit: number,
+    kind?: KnowledgeKind,
+  ): Promise<QdrantSearchHit[]> {
+    const names = this.getCollectionTargets(kind);
+    await this.ensureCollections(names);
     const c = this.getClient();
-    const name = this.getCollectionName();
-    const res = await c.search(name, {
-      vector,
-      limit,
-      with_payload: true,
-    });
-    return (res ?? []).map((r) => ({
-      score: r.score ?? 0,
-      payload: r.payload as Record<string, unknown> | undefined,
-    }));
+    const batch = await Promise.all(
+      names.map((name) =>
+        c.search(name, {
+          vector,
+          limit,
+          with_payload: true,
+        }),
+      ),
+    );
+    return batch
+      .flatMap((res) => res ?? [])
+      .map((r) => ({
+        score: r.score ?? 0,
+        payload: r.payload as Record<string, unknown> | undefined,
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit);
   }
 
   async scrollByKind(kind: string, limit: number): Promise<QdrantSearchHit[]> {
-    await this.ensureCollection();
+    const targetKind = kind === 'github' ? 'github' : 'file';
+    const name = this.getCollectionByKind(targetKind);
+    await this.ensureCollection(name);
     const c = this.getClient();
-    const name = this.getCollectionName();
     const res = await c.scroll(name, {
       // 部分托管版本对 scroll+filter 语法兼容性较差，这里先拉一批后端内存过滤，保证稳定性。
       limit: Math.max(limit * 10, 80),
@@ -150,30 +187,36 @@ export class QdrantService {
   async deleteBySource(source: string, kind?: string): Promise<number> {
     const target = source.trim();
     if (!target) return 0;
-    await this.ensureCollection();
+    const targetKind =
+      kind === 'github' ? ('github' as KnowledgeKind) : kind === 'file' ? ('file' as KnowledgeKind) : undefined;
+    const names = this.getCollectionTargets(targetKind);
+    await this.ensureCollections(names);
     const c = this.getClient();
-    const name = this.getCollectionName();
-    const res = await c.scroll(name, {
-      limit: 5000,
-      with_payload: true,
-      with_vector: false,
-    });
-    const points = (res as { points?: QdrantScrollPoint[] })?.points ?? [];
-    const ids = points
-      .filter((p) => {
-        const payload = p.payload;
-        if (!payload || typeof payload.source !== 'string') return false;
-        if (payload.source !== target) return false;
-        if (!kind) return true;
-        return typeof payload.kind === 'string' && payload.kind === kind;
-      })
-      .map((p) => p.id)
-      .filter((id): id is string | number => id !== undefined && id !== null);
-    if (!ids.length) return 0;
-    await c.delete(name, {
-      wait: true,
-      points: ids,
-    });
-    return ids.length;
+    let deleted = 0;
+    for (const name of names) {
+      const res = await c.scroll(name, {
+        limit: 5000,
+        with_payload: true,
+        with_vector: false,
+      });
+      const points = (res as { points?: QdrantScrollPoint[] })?.points ?? [];
+      const ids = points
+        .filter((p) => {
+          const payload = p.payload;
+          if (!payload || typeof payload.source !== 'string') return false;
+          if (payload.source !== target) return false;
+          if (!kind) return true;
+          return typeof payload.kind === 'string' && payload.kind === kind;
+        })
+        .map((p) => p.id)
+        .filter((id): id is string | number => id !== undefined && id !== null);
+      if (!ids.length) continue;
+      await c.delete(name, {
+        wait: true,
+        points: ids,
+      });
+      deleted += ids.length;
+    }
+    return deleted;
   }
 }

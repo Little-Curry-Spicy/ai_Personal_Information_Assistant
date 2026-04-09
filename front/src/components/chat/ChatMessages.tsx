@@ -26,18 +26,24 @@ export function ChatMessages({
       ref={messagesRef}
     >
       {messages.length === 0 && (
-        <p className="pointer-events-none absolute inset-x-0 top-[76%] flex -translate-y-1/2 items-center justify-center gap-2 px-4 text-sm text-[var(--text)]">
-          <MessageCircleMore className="text-[var(--terracotta)]" size={18} strokeWidth={2} aria-hidden />
-          输入问题开始对话
+        <p className="pointer-events-none absolute inset-x-0 top-[88%] flex -translate-y-1/2 flex-wrap items-center justify-center gap-2 px-4 text-center text-sm text-[var(--text)]">
+          <MessageCircleMore className="shrink-0 text-[var(--terracotta)]" size={18} strokeWidth={2} aria-hidden />
+          仅可询问关于我的工作、项目与基本个人信息；输入问题开始对话
         </p>
       )}
 
       {messages.map((message) => {
-        const textPartIndices = message.parts
-          .map((p, i) => (p.type === 'text' ? i : -1))
-          .filter((i) => i >= 0)
-        const lastTextPartIdx = textPartIndices[textPartIndices.length - 1]
+        const textParts = message.parts
+          .map((part, index) => ({ part, index }))
+          .filter(({ part }) => part.type === 'text')
+        const lastTextPartIdx = textParts[textParts.length - 1]?.index
         const isUser = message.role === 'user'
+        const showThinkingBubble =
+          !isUser &&
+          textParts.length === 0 &&
+          message.id === lastAssistantId &&
+          busyActive &&
+          !paused
 
         return (
           <article
@@ -62,7 +68,7 @@ export function ChatMessages({
               }`}
             >
               <div className="flex min-w-0 flex-col gap-2">
-                {message.parts.map((part, index) => (
+                {textParts.map(({ part, index }) => (
                   <MessagePart
                     key={`${message.id}-p-${index}`}
                     part={part}
@@ -76,6 +82,14 @@ export function ChatMessages({
                     paused={paused}
                   />
                 ))}
+                {showThinkingBubble && (
+                  <p className="thinking-inline gap-0.5 text-sm text-[var(--text)]">
+                    <span className="thinking-word">Thinking</span>
+                    <span className="thinking-dot">.</span>
+                    <span className="thinking-dot thinking-dot--2">.</span>
+                    <span className="thinking-dot thinking-dot--3">.</span>
+                  </p>
+                )}
               </div>
             </div>
 

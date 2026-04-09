@@ -241,6 +241,44 @@ pre code,
   }
 }
 
+/* Thinking 文案：ChatGPT 风格三点依次淡入淡出 */
+@keyframes thinking-dot-fade {
+  0%,
+  20% {
+    opacity: 0.22;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.22;
+  }
+}
+
+.thinking-inline {
+  display: inline-flex;
+  align-items: center;
+}
+
+.thinking-word {
+  letter-spacing: 0.01em;
+}
+
+.thinking-dot {
+  width: 0.34em;
+  text-align: center;
+  opacity: 0.22;
+  animation: thinking-dot-fade 1.25s ease-in-out infinite;
+}
+
+.thinking-dot--2 {
+  animation-delay: 0.18s;
+}
+
+.thinking-dot--3 {
+  animation-delay: 0.36s;
+}
+
 .ui-icon {
   display: inline-block;
   flex-shrink: 0;
@@ -265,6 +303,11 @@ pre code,
 
   .ui-icon--spin {
     animation: none !important;
+  }
+
+  .thinking-dot {
+    animation: none !important;
+    opacity: 0.7 !important;
   }
 
   .motion-press:active {

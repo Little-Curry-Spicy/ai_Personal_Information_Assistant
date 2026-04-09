@@ -32,6 +32,54 @@ import { FriendApiKeyGuard } from '../common/guards/friend-api-key.guard';
       inject: [ConfigService],
     },
     {
+      provide: 'CURRENT_TIME_TOOL',
+      useFactory: () => {
+        const schema = z.object({
+          timezone: z
+            .string()
+            .min(1)
+            .optional()
+            .describe('IANA 时区名，例如 Asia/Shanghai；默认 Asia/Shanghai'),
+        });
+        return tool(
+          async ({ timezone }: { timezone?: string }) => {
+            const tz = timezone?.trim() || 'Asia/Shanghai';
+            const now = new Date();
+            try {
+              const formatter = new Intl.DateTimeFormat('zh-CN', {
+                timeZone: tz,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+              });
+              return JSON.stringify(
+                {
+                  timezone: tz,
+                  nowIso: now.toISOString(),
+                  nowLocal: formatter.format(now),
+                  timestampMs: now.getTime(),
+                },
+                null,
+                2,
+              );
+            } catch (e) {
+              return `获取当前时间失败：${(e as Error).message}`;
+            }
+          },
+          {
+            name: 'get_current_time',
+            description:
+              '获取当前时间（默认 Asia/Shanghai）。当问题涉及“现在/今天/今年/年龄”等实时计算时必须先调用。',
+            schema,
+          },
+        );
+      },
+    },
+    {
       provide: 'WEB_SEARCH_TOOL',
       useFactory: (configService: ConfigService) => {
         const webSearchArgsSchema = z.object({
