@@ -22,8 +22,8 @@ services:
         VITE_APP_BASE: ${VITE_APP_BASE:-/info/}
         # 设为 false 时前端隐藏覆盖开关，简历入库固定追加
         VITE_RESUME_INGEST_OVERWRITE: ${VITE_RESUME_INGEST_OVERWRITE:-}
-        # 设为 false 时隐藏侧栏整块「知识库更新」
-        VITE_SHOW_KNOWLEDGE_PANEL: ${VITE_SHOW_KNOWLEDGE_PANEL:-}
+        # 默认隐藏侧栏「知识库更新」；需要显示时在部署环境设 VITE_SHOW_KNOWLEDGE_PANEL=true
+        VITE_SHOW_KNOWLEDGE_PANEL: ${VITE_SHOW_KNOWLEDGE_PANEL:-false}
     restart: unless-stopped
     ports:
       - '${HTTP_PORT:-3001}:80'
