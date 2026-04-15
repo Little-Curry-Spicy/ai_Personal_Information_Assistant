@@ -6,13 +6,11 @@ import { KnowledgeIngestService } from './knowledge-ingest.service';
 import { KnowledgeQualityService } from './knowledge-quality.service';
 import { KnowledgeRetrievalService } from './knowledge-retrieval.service';
 import { QdrantService } from './qdrant.service';
-import { ClerkAuthGuard } from '../common/guards/clerk-auth.guard';
 import { FriendApiKeyGuard } from '../common/guards/friend-api-key.guard';
 
 @Module({
   controllers: [KnowledgeController],
   providers: [
-    ClerkAuthGuard,
     FriendApiKeyGuard,
     QdrantService,
     EmbeddingService,

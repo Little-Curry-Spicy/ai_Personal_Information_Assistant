@@ -141,11 +141,21 @@ export class QdrantService {
     const names = this.getCollectionTargets(kind);
     await this.ensureCollections(names);
     const c = this.getClient();
+    /**
+     * 多集合时：若对每个集合都取 `limit` 再全局 sort + slice(limit)，
+     * 高分集合（常为 GitHub README）会占满名额，简历切片被全部截断，
+     * 「工作经历」等偏简历问法在 isProfileQuery 下会得不到 file 命中。
+     * 按集合均分召回上限，再合并排序截断，保证两侧都有机会进入候选。
+     */
+    const perCollection =
+      names.length > 1
+        ? Math.max(Math.ceil(limit / names.length), 8)
+        : limit;
     const batch = await Promise.all(
       names.map((name) =>
         c.search(name, {
           vector,
-          limit,
+          limit: perCollection,
           with_payload: true,
         }),
       ),

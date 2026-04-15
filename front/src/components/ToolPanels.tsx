@@ -5,7 +5,8 @@ import {
   type ToolUIPart,
   type UIMessage,
 } from 'ai'
-import { AlertCircle, Loader2, Mail, Search, Wrench } from 'lucide-react'
+import { AlertCircle, ChevronDown, Loader2, Mail, Search, Wrench } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { StreamdownText } from './StreamdownText'
 import './ToolPanels.css'
 
@@ -18,6 +19,14 @@ function toolLabel(name: string): string {
       return '网页搜索'
     case 'send_mail':
       return '发送邮件'
+    case 'search_personal_knowledge':
+      return '检索知识库'
+    case 'github_public_repo':
+      return '读取 GitHub 仓库'
+    case 'github_public_user':
+      return '查询 GitHub 用户'
+    case 'get_current_time':
+      return '获取当前时间'
     default:
       return name
   }
@@ -219,12 +228,19 @@ function WebSearchToolPanel({
   )
 }
 
+function truncateHint(s: string, max = 72): string {
+  const t = s.trim()
+  if (t.length <= max) return t
+  return `${t.slice(0, max)}…`
+}
+
 function getPendingHint(
   name: string,
   inputJson: JsonValue | undefined,
 ): string | undefined {
   if (name === 'web_search') {
-    return parseWebSearchToolInput(inputJson)?.query
+    const q = parseWebSearchToolInput(inputJson)?.query
+    return q ? truncateHint(q) : undefined
   }
   if (name === 'send_mail') {
     const p = parseSendMailToolInputPartial(inputJson)
@@ -232,6 +248,30 @@ function getPendingHint(
     if (sub) return sub
     const to = p?.to?.trim()
     if (to) return to
+  }
+  if (name === 'search_personal_knowledge') {
+    if (inputJson !== null && typeof inputJson === 'object' && !Array.isArray(inputJson)) {
+      const q = (inputJson as Record<string, JsonValue>).query
+      if (typeof q === 'string' && q.trim()) return truncateHint(q)
+    }
+  }
+  if (name === 'github_public_repo') {
+    if (inputJson !== null && typeof inputJson === 'object' && !Array.isArray(inputJson)) {
+      const o = inputJson as Record<string, JsonValue>
+      if (typeof o.ownerRepo === 'string' && o.ownerRepo.trim()) {
+        return truncateHint(o.ownerRepo.trim(), 48)
+      }
+      const u = typeof o.username === 'string' ? o.username.trim() : ''
+      const r = typeof o.repo === 'string' ? o.repo.trim() : ''
+      if (u && r) return `${u}/${r}`
+      if (r) return r
+    }
+  }
+  if (name === 'github_public_user') {
+    if (inputJson !== null && typeof inputJson === 'object' && !Array.isArray(inputJson)) {
+      const u = (inputJson as Record<string, JsonValue>).username
+      if (typeof u === 'string' && u.trim()) return u.trim()
+    }
   }
   return undefined
 }
@@ -383,6 +423,129 @@ function ToolErrorPanel({ name, message }: { name: string; message: string }) {
   )
 }
 
+/** 与后端 searchAsContext 返回的「片段」标记一致，用于折叠条摘要 */
+function countKnowledgeFragments(text: string): number {
+  const m = text.match(/\[片段\s*\d+/g)
+  return m?.length ?? 0
+}
+
+/**
+ * Cursor 风格：默认收起长检索原文，展示用时与条数；箭头展开查看片段。
+ */
+function KnowledgeRetrievalCollapsible({
+  query,
+  output,
+  durationMs,
+}: {
+  query?: string
+  output: string
+  durationMs: number
+}) {
+  const [open, setOpen] = useState(false)
+  const sec = Math.max(durationMs / 1000, 0.05)
+  const formattedSec = sec < 10 ? sec.toFixed(1) : String(Math.round(sec))
+  const n = countKnowledgeFragments(output)
+  const title =
+    n > 0 ? `已检索 ${n} 条资料 · ${formattedSec}s` : `检索完成 · ${formattedSec}s`
+
+  return (
+    <div className="tool-collapsible tool-collapsible--knowledge">
+      <button
+        type="button"
+        className="tool-collapsible__toggle"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <ChevronDown
+          className={`tool-collapsible__chevron ui-icon ${open ? 'tool-collapsible__chevron--open' : ''}`}
+          size={16}
+          strokeWidth={2}
+          aria-hidden
+        />
+        <span className="tool-collapsible__title">{title}</span>
+        {query?.trim() ? (
+          <span className="tool-collapsible__query" title={query.trim()}>
+            {truncateHint(query.trim(), 40)}
+          </span>
+        ) : null}
+      </button>
+      {open ? (
+        <div className="tool-collapsible__body">
+          <pre className="tool-collapsible__pre">{output}</pre>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+/** 从工具出现到 output-available 用同一实例计时，保证时长覆盖流式参数阶段 */
+function SearchPersonalKnowledgeToolPart({
+  part,
+  paused = false,
+}: {
+  part: AnyToolPart
+  paused?: boolean
+}) {
+  const startedAtRef = useRef<number | null>(null)
+  if (startedAtRef.current === null) {
+    startedAtRef.current = Date.now()
+  }
+  const [durationMs, setDurationMs] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (part.state === 'output-available' && durationMs === null) {
+      setDurationMs(Date.now() - startedAtRef.current!)
+    }
+  }, [part.state, durationMs])
+
+  if (part.state === 'output-error') {
+    return (
+      <ToolErrorPanel
+        name="search_personal_knowledge"
+        message={part.errorText ?? '未能完成执行，可稍后重试或换一种说法。'}
+      />
+    )
+  }
+
+  if (part.state !== 'output-available') {
+    if (paused) {
+      return <ToolPendingPanel name="search_personal_knowledge" paused />
+    }
+    const inputJson = streamValueToJson('input' in part ? part.input : undefined)
+    const hint = getPendingHint('search_personal_knowledge', inputJson)
+    return <ToolPendingPanel name="search_personal_knowledge" hint={hint} />
+  }
+
+  const rawIn = 'input' in part ? part.input : undefined
+  const rawOut = part.output
+  const inputJson = streamValueToJson(rawIn)
+  const outputStr =
+    typeof rawOut === 'string'
+      ? rawOut
+      : streamValueToJson(rawOut) !== undefined
+        ? JSON.stringify(streamValueToJson(rawOut), null, 2)
+        : String(rawOut)
+
+  const query =
+    inputJson !== null &&
+    typeof inputJson === 'object' &&
+    !Array.isArray(inputJson) &&
+    typeof (inputJson as Record<string, JsonValue>).query === 'string'
+      ? (inputJson as Record<string, JsonValue>).query
+      : undefined
+
+  const elapsed =
+    durationMs ?? Date.now() - (startedAtRef.current ?? Date.now())
+
+  return (
+    <KnowledgeRetrievalCollapsible
+      query={typeof query === 'string' ? query : undefined}
+      output={outputStr}
+      durationMs={elapsed}
+    />
+  )
+}
+
 function DefaultToolOutput({ value }: { value: JsonValue | WebSearchToolOutput }) {
   const text =
     typeof value === 'string'
@@ -410,6 +573,10 @@ function defaultToolValueFromStream(raw: unknown): JsonValue | WebSearchToolOutp
 
 function ToolMessagePart({ part, paused = false }: { part: AnyToolPart; paused?: boolean }) {
   const name = getToolName(part)
+
+  if (name === 'search_personal_knowledge') {
+    return <SearchPersonalKnowledgeToolPart part={part} paused={paused} />
+  }
 
   if (part.state === 'output-error') {
     return (

@@ -21,7 +21,6 @@
   },
   "dependencies": {
     "@ai-sdk/langchain": "^2.0.152",
-    "@clerk/backend": "^3.2.7",
     "@langchain/core": "^1.1.39",
     "@langchain/openai": "^1.4.2",
     "@nestjs-modules/mailer": "^2.3.4",

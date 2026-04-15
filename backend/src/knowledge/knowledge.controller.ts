@@ -10,7 +10,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import { ClerkAuthGuard } from '../common/guards/clerk-auth.guard';
 import { FriendApiKeyGuard } from '../common/guards/friend-api-key.guard';
 import { KnowledgeIngestService } from './knowledge-ingest.service';
 import { KnowledgeQualityService } from './knowledge-quality.service';
@@ -18,7 +17,7 @@ import { KnowledgeQualityService } from './knowledge-quality.service';
 const upload = memoryStorage();
 
 @Controller('knowledge')
-@UseGuards(ClerkAuthGuard, FriendApiKeyGuard)
+@UseGuards(FriendApiKeyGuard)
 export class KnowledgeController {
   constructor(
     private readonly ingest: KnowledgeIngestService,

@@ -1,13 +1,10 @@
-import { useAuth } from '@clerk/clerk-react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, type UIMessage } from 'ai'
-import { AlertCircle, CircleStop, Play, Quote, Sparkles } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ClerkUserBar } from './components/ClerkUserBar'
+import { AlertCircle, CircleStop, ExternalLink, Play, Quote, Sparkles } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChatComposer } from './components/chat/ChatComposer'
-import { ChatMessages } from './components/chat/ChatMessages'
+import { ChatMessages, type ChatStarterItem } from './components/chat/ChatMessages'
 import { Sidebar, type ProjectCard } from './components/chat/Sidebar'
-import { isClerkAuthEnabled } from './config/clerk'
 import { useKnowledgeIngest } from './hooks/useKnowledgeIngest'
 import { useSelectionBubble } from './hooks/useSelectionBubble'
 
@@ -18,73 +15,82 @@ import { useSelectionBubble } from './hooks/useSelectionBubble'
  */
 const API_BASE = import.meta.env.VITE_API_BASE?.trim() ?? ''
 const APP_NAME = 'TSK信息助手'
+const PERSONAL_SITE_URL = 'https://1996tsk.top/'
+
+/** 未设置或显式为真时返回 true；`false` / `0` / `off` / `no` 为 false。 */
+function parseEnvEnabled(raw: string | undefined): boolean {
+  if (raw === undefined || raw === '') return true
+  return !['0', 'false', 'no', 'off'].includes(raw.trim().toLowerCase())
+}
+
+const RESUME_INGEST_OVERWRITE_SELECTABLE = parseEnvEnabled(import.meta.env.VITE_RESUME_INGEST_OVERWRITE)
+/** 侧栏「知识库更新」整块（简历上传 + GitHub 同步）是否展示 */
+const SHOW_KNOWLEDGE_PANEL = parseEnvEnabled(import.meta.env.VITE_SHOW_KNOWLEDGE_PANEL)
+
+const CHAT_WELCOME_GREETING =
+  '你好 👋🏻！我是 TSK 信息助手，会回答关于你询问TSK的一切问题。可以先从下面选一个常见问题，或在下方输入框直接提问。'
+
+const CHAT_STARTERS: ChatStarterItem[] = [
+  {
+    label: '简要介绍你的工作经历',
+    prompt: '请简要介绍我的工作经历：按时间说明每段工作的公司、岗位、年限与主要成果。',
+  },
+  {
+    label: '你熟悉哪些技术栈？',
+    prompt: '根据资料总结我熟悉的技术栈与使用场景，按类别简要列出。',
+  },
+  {
+    label: '介绍一下代表作品项目',
+    prompt: '请介绍一个最能代表我能力水平的项目：背景、我的职责、技术难点与可量化结果。',
+  },
+  {
+    label: 'GitHub 上主要做哪些方向？',
+    prompt: '根据已同步的 GitHub 资料，说明我主要维护或参与的项目类型与技术方向。',
+  },
+]
+
+/** 将用户输入包一层上下文，引导模型优先结合该仓库与知识库作答 */
+function wrapMessageForProject(project: ProjectCard, body: string): string {
+  return `【请围绕 GitHub 仓库 ${project.repo}（项目「${project.name}」）作答；请结合知识库中与该仓库、该项目相关的资料，若资料不足请说明】\n\n${body}`
+}
 
 const PROJECT_CARDS: ProjectCard[] = [
   {
-    id: 'xclear',
-    name: 'XClear-admin',
-    repo: 'Little-Curry-Spicy/XClear-admin',
-    highlight: '后台管理系统工程化实践',
+    id: 'otc-flutter',
+    name: 'OTC-Flutter',
+    repo: 'Little-Curry-Spicy/OTC-Flutter',
+    techStack: 'Flutter 3.7+ · Dio · SharedPreferences · Material；Android / iOS / Web / 桌面同一套代码',
+    intro:
+      'OTC365 场外（OTC/P2P）客户端：总资产与收益看板、广告市场与筛选、下单与订单流转、账户与基础设置等完整交易闭环。',
+    tag: '金融科技 · 跨端 App',
   },
   {
-    id: 'movie',
-    name: 'movie-nest',
-    repo: 'Little-Curry-Spicy/movie-nest',
-    highlight: 'NestJS 后端服务与模块化架构',
+    id: 'drift-bottle',
+    name: 'drift-bottle',
+    repo: 'Little-Curry-Spicy/drift-bottle',
+    techStack:
+      'pnpm Monorepo · Expo ~54 / RN / expo-router · NativeWind · NestJS · TypeORM · Next.js App Router · Supabase（PostgreSQL + RLS）· Clerk · i18next',
+    intro:
+      '以「漂流瓶」为隐喻的匿名心情应用：登录后扔瓶、在海洋里捞瓶、回复与收藏；可选对接 Nest API 与 Supabase，含品牌官网与统一响应/Swagger。',
+    tag: '社交 · Monorepo 全栈',
   },
   {
-    id: 'ai',
-    name: 'ai-demo',
-    repo: 'Little-Curry-Spicy/ai-demo',
-    highlight: 'RAG / MCP / 向量检索实战',
+    id: 'resume-matcher',
+    name: 'resume-matcher',
+    repo: 'Little-Curry-Spicy/resume-matcher',
+    techStack: 'Vue 3 · Vite · TypeScript · NestJS；Docker Compose 一键部署',
+    intro:
+      '求职场景下简历与岗位描述（JD）对齐：上传简历、粘贴 JD，输出差距分析、面试题预测与带修订标记的润色稿，并支持本地草稿与 PDF 预览。',
+    tag: 'AI 工具链 · 产品化',
   },
 ]
 
 export default function App() {
-  if (isClerkAuthEnabled()) {
-    return <AppWithClerkAuth />
-  }
-  return <ChatApp />
-}
-
-/** 仅在已挂载 ClerkProvider 且前端启用 Clerk 时使用 */
-function AppWithClerkAuth() {
-  const { getToken } = useAuth()
-  const getAuthHeaders = useCallback(async (): Promise<Record<string, string>> => {
-    const t = await getToken()
-    if (!t) return {}
-    return { Authorization: `Bearer ${t}` }
-  }, [getToken])
-  return <ChatApp getAuthHeaders={getAuthHeaders} />
-}
-
-type ChatAppProps = {
-  getAuthHeaders?: () => Promise<Record<string, string>>
-}
-
-function ChatApp(props: ChatAppProps = {}) {
-  const { getAuthHeaders } = props
   const chatUrl = `${API_BASE}/ai/chat`
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesRef = useRef<HTMLDivElement>(null)
 
-  const transport = useMemo(
-    () =>
-      new DefaultChatTransport({
-        api: chatUrl,
-        fetch: async (input, init) => {
-          const headers = new Headers(init?.headers)
-          const extra = await getAuthHeaders?.()
-          if (extra) {
-            for (const [k, v] of Object.entries(extra)) {
-              if (v) headers.set(k, v)
-            }
-          }
-          return fetch(input, { ...init, headers })
-        },
-      }),
-    [chatUrl, getAuthHeaders],
-  )
+  const transport = useMemo(() => new DefaultChatTransport({ api: chatUrl }), [chatUrl])
 
   const { messages, sendMessage, status, stop, error, clearError } = useChat<UIMessage>({
     transport,
@@ -92,15 +98,29 @@ function ChatApp(props: ChatAppProps = {}) {
   const [input, setInput] = useState('')
   const [quotedText, setQuotedText] = useState<string | null>(null)
   const [paused, setPaused] = useState(false)
-  const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [replaceExistingKnowledge, setReplaceExistingKnowledge] = useState(true)
+  /** 侧栏选中的代表项目：后续在输入框发送的问题会附带该项目上下文 */
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
+  const [replaceExistingKnowledge, setReplaceExistingKnowledge] = useState(
+    RESUME_INGEST_OVERWRITE_SELECTABLE,
+  )
+  /** 点击发送后立刻为 true，避免等 useChat 进入 makeRequest 才出现 Thinking */
+  const [connectPending, setConnectPending] = useState(false)
 
-  const busy = status === 'submitted' || status === 'streaming'
+  const busy = status === 'submitted' || status === 'streaming' || connectPending
   const busyActive = busy && !paused
   const canSend = (status === 'ready' || paused) && input.trim().length > 0
   const inputDisabled = !paused && status !== 'ready'
   const lastAssistant = messages.filter((m) => m.role === 'assistant').at(-1)
+  const lastMessage = messages.at(-1)
+  const awaitingAssistantBubble =
+    busyActive && !paused && lastMessage?.role === 'user'
+
+  useEffect(() => {
+    if (status === 'submitted' || status === 'streaming' || status === 'error') {
+      setConnectPending(false)
+    }
+  }, [status])
   const { selectionBubble, clearSelectionBubble } = useSelectionBubble(messagesRef)
   const {
     uploadBusy,
@@ -112,7 +132,12 @@ function ChatApp(props: ChatAppProps = {}) {
     setSelectedResumeName,
     uploadResume,
     syncGithub,
-  } = useKnowledgeIngest(API_BASE, { getAuthHeaders })
+  } = useKnowledgeIngest(API_BASE)
+
+  const activeProject = useMemo(
+    () => PROJECT_CARDS.find((p) => p.id === activeProjectId) ?? null,
+    [activeProjectId],
+  )
 
   function onStop() {
     if (busy) {
@@ -138,28 +163,28 @@ function ChatApp(props: ChatAppProps = {}) {
     })
   }
 
-  async function askProjectQuestion(project: ProjectCard, dimension: 'role' | 'difficulty' | 'metrics') {
+  async function askStarterQuestion(prompt: string) {
+    if (busy) return
     if (!(status === 'ready' || paused)) return
-    const promptMap = {
-      role: `针对项目 ${project.repo}，请按“结论->证据->量化结果”回答：这个项目我的角色和职责是什么？`,
-      difficulty: `针对项目 ${project.repo}，请按“结论->证据->量化结果”回答：这个项目最大的技术难点是什么，我是怎么解决的？`,
-      metrics: `针对项目 ${project.repo}，请按“结论->证据->量化结果”回答：这个项目有哪些可量化结果（性能、效率、交付周期、成本）？`,
-    } as const
+    setConnectPending(true)
     setPaused(false)
     setInput('')
     setQuotedText(null)
-    await sendMessage({ text: promptMap[dimension] })
+    await sendMessage({ text: prompt })
   }
 
   async function submitQuestion() {
     if (!canSend) return
+    setConnectPending(true)
     const plainInput = input
     const quotedPrefix = quotedText ? `引用：\n「${quotedText}」\n\n` : ''
+    const core = `${quotedPrefix}${plainInput}`
+    const text = activeProject ? wrapMessageForProject(activeProject, core) : core
     // 交互上应“点发送立即清空”，避免网络慢时用户误判未提交
     setPaused(false)
     setInput('')
     setQuotedText(null)
-    await sendMessage({ text: `${quotedPrefix}${plainInput}` })
+    await sendMessage({ text })
   }
 
   // 流式输出时自动跟随到底部，确保始终看到最新答案
@@ -191,7 +216,15 @@ function ChatApp(props: ChatAppProps = {}) {
           </div>
         </div>
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
-          <ClerkUserBar />
+          <a
+            href={PERSONAL_SITE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-lg border border-[var(--border-warm)] bg-[var(--ivory)] px-3 py-2 text-sm font-medium text-[var(--text-h)] transition hover:-translate-y-0.5 hover:bg-[var(--warm-sand)]"
+          >
+            <ExternalLink size={16} strokeWidth={2} aria-hidden />
+            个人网站
+          </a>
           <button
             type="button"
             className="inline-flex items-center gap-2 rounded-lg border border-[var(--border-warm)] bg-[var(--warm-sand)] px-3 py-2 text-sm text-[var(--charcoal-warm)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
@@ -214,16 +247,19 @@ function ChatApp(props: ChatAppProps = {}) {
           onToggleSidebar={() => setSidebarCollapsed((v) => !v)}
           projectCards={PROJECT_CARDS}
           activeProjectId={activeProjectId}
-          onToggleProject={(projectId) =>
-            setActiveProjectId((current) => (current === projectId ? null : projectId))
-          }
-          onAskProjectQuestion={(project, dimension) => {
-            void askProjectQuestion(project, dimension)
+          onToggleProject={(projectId) => {
+            setActiveProjectId((cur) => (cur === projectId ? null : projectId))
+            window.requestAnimationFrame(() => inputRef.current?.focus())
           }}
-          busyActive={busyActive}
           uploadBusy={uploadBusy}
           selectedResumeName={selectedResumeName}
-          onUploadResume={uploadResume}
+          onUploadResume={(file, replace) =>
+            uploadResume(
+              file,
+              RESUME_INGEST_OVERWRITE_SELECTABLE ? (replace ?? false) : false,
+            )
+          }
+          resumeOverwriteSelectable={RESUME_INGEST_OVERWRITE_SELECTABLE}
           replaceExistingKnowledge={replaceExistingKnowledge}
           onReplaceExistingKnowledgeChange={setReplaceExistingKnowledge}
           onSetSelectedResumeName={setSelectedResumeName}
@@ -232,28 +268,36 @@ function ChatApp(props: ChatAppProps = {}) {
           githubBusy={githubBusy}
           onSyncGithub={syncGithub}
           ingestMessage={ingestMessage}
+          showKnowledgePanel={SHOW_KNOWLEDGE_PANEL}
         />
 
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <ChatMessages
             messages={messages}
             lastAssistantId={lastAssistant?.id}
+            awaitingAssistantBubble={awaitingAssistantBubble}
             busyActive={busyActive}
             paused={paused}
             messagesRef={messagesRef}
+            welcomeGreeting={CHAT_WELCOME_GREETING}
+            starterQuestions={CHAT_STARTERS}
+            onStarterQuestion={(prompt) => {
+              void askStarterQuestion(prompt)
+            }}
+            startersDisabled={busy}
           />
-      {selectionBubble ? (
-        <button
-          type="button"
-          className="fixed z-30 inline-flex -translate-x-1/2 -translate-y-full items-center gap-1 rounded-md border border-[var(--accent-border)] bg-[var(--bg)] px-2 py-1 text-xs text-[var(--text-h)] shadow"
-          style={{ left: selectionBubble.x, top: selectionBubble.y }}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => quoteSelectedText(selectionBubble.text)}
-        >
-          <Quote size={13} strokeWidth={2} aria-hidden />
-          引用提问
-        </button>
-      ) : null}
+          {selectionBubble ? (
+            <button
+              type="button"
+              className="fixed z-30 inline-flex -translate-x-1/2 -translate-y-full items-center gap-1 rounded-md border border-[var(--accent-border)] bg-[var(--bg)] px-2 py-1 text-xs text-[var(--text-h)] shadow"
+              style={{ left: selectionBubble.x, top: selectionBubble.y }}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => quoteSelectedText(selectionBubble.text)}
+            >
+              <Quote size={13} strokeWidth={2} aria-hidden />
+              引用提问
+            </button>
+          ) : null}
 
           {error && (
             <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
@@ -274,6 +318,10 @@ function ChatApp(props: ChatAppProps = {}) {
           <ChatComposer
             quotedText={quotedText}
             onRemoveQuotedText={() => setQuotedText(null)}
+            projectContext={
+              activeProject ? { name: activeProject.name, repo: activeProject.repo } : null
+            }
+            onClearProjectContext={() => setActiveProjectId(null)}
             inputRef={inputRef}
             input={input}
             onInputChange={setInput}

@@ -15,6 +15,10 @@ const appBase = normalizeBase(process.env.VITE_APP_BASE)
 export default defineConfig({
   base: appBase,
   assetsInclude: ['**/*.lottie'],
+  /** 升级 lucide-react 等依赖后若报「does not provide an export named …」，删 `node_modules/.vite` 或执行 `pnpm dev:force` */
+  optimizeDeps: {
+    include: ['lucide-react'],
+  },
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {

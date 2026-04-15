@@ -1,9 +1,12 @@
-import { Bot, Quote, SendHorizonal, X } from 'lucide-react'
+import { Bot, BriefcaseBusiness, Quote, SendHorizonal, X } from 'lucide-react'
 import type { FormEvent, KeyboardEvent, RefObject } from 'react'
 
 type ChatComposerProps = {
   quotedText: string | null
   onRemoveQuotedText: () => void
+  /** 侧栏选中的项目：发送时会附带上下文（展示条可清除） */
+  projectContext: { name: string; repo: string } | null
+  onClearProjectContext: () => void
   inputRef: RefObject<HTMLTextAreaElement | null>
   input: string
   onInputChange: (value: string) => void
@@ -18,6 +21,8 @@ type ChatComposerProps = {
 export function ChatComposer({
   quotedText,
   onRemoveQuotedText,
+  projectContext,
+  onClearProjectContext,
   inputRef,
   input,
   onInputChange,
@@ -49,6 +54,10 @@ export function ChatComposer({
         : '出错'
   const isThinking = !paused && (status === 'submitted' || status === 'streaming')
 
+  const placeholder = projectContext
+    ? `针对「${projectContext.name}」提问，Enter 发送，Shift+Enter 换行`
+    : '输入你想询问TSK的问题，Enter 发送，Shift+Enter 换行'
+
   return (
     <form className="mt-2" onSubmit={onSubmit}>
       {quotedText ? (
@@ -73,13 +82,38 @@ export function ChatComposer({
         </div>
       ) : null}
 
+      {projectContext ? (
+        <div
+          className="mt-2 flex items-center gap-2 rounded-lg border border-[var(--border-warm)] bg-[var(--warm-sand)] px-3 py-2 text-xs text-[var(--text-h)]"
+          role="note"
+          aria-label="当前关联项目"
+        >
+          <span className="inline-flex shrink-0 items-center gap-1 font-medium">
+            <BriefcaseBusiness size={13} strokeWidth={2} aria-hidden />
+            关联项目
+          </span>
+          <span className="min-w-0 flex-1 truncate">
+            {projectContext.name}
+            <span className="text-[var(--text)]"> · {projectContext.repo}</span>
+          </span>
+          <button
+            type="button"
+            className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded hover:bg-black/5"
+            onClick={onClearProjectContext}
+            aria-label="取消关联项目"
+          >
+            <X size={13} strokeWidth={2} aria-hidden />
+          </button>
+        </div>
+      ) : null}
+
       <textarea
         ref={inputRef}
         className="mt-2 min-h-[96px] w-full resize-y rounded-xl border border-[var(--border-warm)] bg-[var(--bg)] px-4 py-3 text-base text-[var(--text-h)] outline-none transition focus:ring-2 focus:ring-inset focus:ring-[var(--focus-blue)] disabled:opacity-60"
         value={input}
         onChange={(e) => onInputChange(e.target.value)}
         onKeyDown={onInputKeyDown}
-        placeholder="输入消息，Enter 发送，Shift+Enter 换行"
+        placeholder={placeholder}
         rows={3}
         disabled={inputDisabled}
         aria-label="消息输入"

@@ -16,12 +16,14 @@ services:
       context: ./front
       dockerfile: Dockerfile
       args:
-        VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:-}
-        VITE_CLERK_ENABLED: ${VITE_CLERK_ENABLED:-}
         # 子路径部署到 /info 时，API 走 /info/ai 与 /info/knowledge
         VITE_API_BASE: ${VITE_API_BASE:-/info}
         # 线上默认挂在 /info/ 子路径；若改为根路径可在环境变量覆盖为 /
         VITE_APP_BASE: ${VITE_APP_BASE:-/info/}
+        # 设为 false 时前端隐藏覆盖开关，简历入库固定追加
+        VITE_RESUME_INGEST_OVERWRITE: ${VITE_RESUME_INGEST_OVERWRITE:-}
+        # 设为 false 时隐藏侧栏整块「知识库更新」
+        VITE_SHOW_KNOWLEDGE_PANEL: ${VITE_SHOW_KNOWLEDGE_PANEL:-}
     restart: unless-stopped
     ports:
       - '${HTTP_PORT:-3001}:80'

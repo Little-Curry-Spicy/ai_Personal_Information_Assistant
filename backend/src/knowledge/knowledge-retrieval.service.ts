@@ -40,8 +40,19 @@ export class KnowledgeRetrievalService {
     return `${query}\nname full name 姓名 名字 简历 resume CV profile contact introduction`;
   }
 
+  /**
+   * 「偏简历/身份」的问法才做「简历优先」；含项目、技术、GitHub 等时须保留 GitHub 切片，
+   * 否则只要句子里出现「我」就会把向量结果收窄成仅 file，项目类问题极易零命中。
+   */
   private isProfileQuery(query: string): boolean {
     const q = query.toLowerCase();
+    if (
+      /项目|github|仓库|开源|repo|readme|代码|技术栈|框架|难点|职责|量化|代表|架构|实现|开发|部署|性能|交付|模块|服务|接口|前端|后端|全栈/i.test(
+        q,
+      )
+    ) {
+      return false;
+    }
     return /我|我的|姓名|名字|年龄|简历|经历|联系方式|邮箱|工作|任职|公司|多久|时长|第一份/.test(
       q,
     );
@@ -88,7 +99,9 @@ export class KnowledgeRetrievalService {
             return kind === 'file' || this.looksLikeResumeSource(source);
           });
           if (resumeFirst.length) return resumeFirst.slice(0, topK);
-          // 兜底：若语义 topK 被 GitHub 内容淹没，直接补拉 file 类型片段（通常是已上传简历）。
+          // 简历语义未命中时，保留已合并结果（含 GitHub），避免只 scroll 简历导致零命中。
+          if (merged.length) return merged.slice(0, topK);
+          // 最后兜底：拉一批 file 类型片段（已上传简历）。
           return (await this.qdrant.scrollByKind('file', Math.max(topK, 8))).slice(
             0,
             topK,

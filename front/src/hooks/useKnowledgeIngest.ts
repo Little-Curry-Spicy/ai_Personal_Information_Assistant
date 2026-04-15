@@ -14,7 +14,7 @@ type IngestGithubResponse = {
 }
 
 export type UseKnowledgeIngestOptions = {
-  /** 与聊天接口一致，附加 Authorization 等（如 Clerk JWT） */
+  /** 可选：为请求附加自定义头（例如 Bearer密钥） */
   getAuthHeaders?: () => Promise<Record<string, string>>
   initialGithubUser?: string
 }

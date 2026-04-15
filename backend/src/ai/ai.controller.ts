@@ -9,11 +9,10 @@ import {
 import type { Response } from 'express';
 import { AiService } from './ai.service';
 import { pipeUIMessageStreamToResponse, UIMessage } from 'ai';
-import { ClerkAuthGuard } from '../common/guards/clerk-auth.guard';
 import { FriendApiKeyGuard } from '../common/guards/friend-api-key.guard';
 
 @Controller('ai')
-@UseGuards(ClerkAuthGuard, FriendApiKeyGuard)
+@UseGuards(FriendApiKeyGuard)
 export class AiController {
   constructor(private readonly aiService: AiService) {}
   @Post('chat')

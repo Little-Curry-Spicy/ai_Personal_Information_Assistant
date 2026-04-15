@@ -8,14 +8,12 @@ import z from 'zod';
 import { KnowledgeModule } from '../knowledge/knowledge.module';
 import { KnowledgeRetrievalService } from '../knowledge/knowledge-retrieval.service';
 import { GithubPublicService } from '../knowledge/github-public.service';
-import { ClerkAuthGuard } from '../common/guards/clerk-auth.guard';
 import { FriendApiKeyGuard } from '../common/guards/friend-api-key.guard';
 
 @Module({
   imports: [KnowledgeModule],
   controllers: [AiController],
   providers: [
-    ClerkAuthGuard,
     FriendApiKeyGuard,
     AiService,
     {
