@@ -330,7 +330,7 @@ import { FriendApiKeyGuard } from '../common/guards/friend-api-key.guard';
           {
             name: 'github_public_user',
             description:
-              '根据 GitHub 用户名返回公开主页地址与公开仓库列表。用于回答“我的 GitHub 地址/账号/项目”类问题。',
+              '根据 GitHub 用户名返回公开主页地址与公开仓库列表。用于回答「GitHub 地址/账号/有哪些项目」以及「主要在 GitHub 做哪些方向、哪类公开项目」等需要仓库概览的问题；在 search_personal_knowledge 已给出用户名但片段不足以归纳方向时可补充调用。',
             schema,
           },
         );

@@ -37,23 +37,33 @@ export class KnowledgeRetrievalService {
   }
 
   private expandQueryForResume(query: string): string {
-    return `${query}\nname full name 姓名 名字 简历 resume CV profile contact introduction`;
+    return `${query}\nname full name 姓名 名字 简历 resume CV profile contact introduction employment work experience job company role employer 工作经历 任职`;
   }
 
   /**
    * 「偏简历/身份」的问法才做「简历优先」；含项目、技术、GitHub 等时须保留 GitHub 切片，
    * 否则只要句子里出现「我」就会把向量结果收窄成仅 file，项目类问题极易零命中。
+   *
+   * 注意：预备问题里常见「主要职责」「可量化成果」等词，若放入排除列表会误判「工作经历」类问法，
+   * 故对「工作经历 / 履历 / 每段工作」等强信号单独优先判定为 profile。
    */
   private isProfileQuery(query: string): boolean {
     const q = query.toLowerCase();
     if (
-      /项目|github|仓库|开源|repo|readme|代码|技术栈|框架|难点|职责|量化|代表|架构|实现|开发|部署|性能|交付|模块|服务|接口|前端|后端|全栈/i.test(
+      /工作经历|工作履历|任职经历|职业经历|每段工作|就业经历|曾在哪些公司|公司\s*与\s*岗位|就职|雇主/i.test(
+        q,
+      )
+    ) {
+      return true;
+    }
+    if (
+      /项目|github|仓库|开源|repo|readme|代码|技术栈|框架|难点|代表|架构|实现|开发|部署|性能|交付|模块|服务|接口|前端|后端|全栈/i.test(
         q,
       )
     ) {
       return false;
     }
-    return /我|我的|姓名|名字|年龄|简历|经历|联系方式|邮箱|工作|任职|公司|多久|时长|第一份/.test(
+    return /我|我的|姓名|名字|年龄|简历|经历|联系方式|邮箱|工作|任职|公司|多久|时长|第一份|职责|量化/.test(
       q,
     );
   }
