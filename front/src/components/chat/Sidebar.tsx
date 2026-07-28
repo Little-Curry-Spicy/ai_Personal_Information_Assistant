@@ -5,7 +5,6 @@ import {
   DatabaseZap,
   FileUp,
   GitBranch,
-  Github,
 } from 'lucide-react'
 
 export type ProjectCard = {
@@ -128,7 +127,7 @@ export function Sidebar({
                         onClick={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
                       >
-                        <Github size={14} strokeWidth={2} className="shrink-0 opacity-90" aria-hidden />
+                        <GitBranch size={14} strokeWidth={2} className="shrink-0 opacity-90" aria-hidden />
                         {project.repo}
                       </a>
                     </div>

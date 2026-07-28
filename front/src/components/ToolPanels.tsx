@@ -546,6 +546,179 @@ function SearchPersonalKnowledgeToolPart({
   )
 }
 
+/**
+ * 解析 github_public_repo 返回文本：仓库元数据 + `--- README ---` 后的 Markdown。
+ * @param text 工具原始输出
+ * @returns 结构化字段；无法识别时 `fallback` 保留原文
+ */
+function parseGithubRepoOutput(text: string): {
+  repo?: string
+  description?: string
+  url?: string
+  readme?: string
+  fallback?: string
+} {
+  const repo = text.match(/^仓库:\s*(.+)$/m)?.[1]?.trim()
+  const description = text.match(/^描述:\s*(.+)$/m)?.[1]?.trim()
+  const url = text.match(/^链接:\s*(\S+)/m)?.[1]?.trim()
+  const marker = text.search(/\n--- README ---\n/)
+  if (marker >= 0) {
+    const readme = text
+      .slice(marker)
+      .replace(/^\n--- README ---\n\n?/, '')
+      .trim()
+    return { repo, description, url, readme: readme || undefined }
+  }
+  if (repo || url) {
+    // 有元数据但无 README 分隔符（例如「无 README」提示）
+    const rest = text
+      .replace(/^仓库:.*$/m, '')
+      .replace(/^描述:.*$/m, '')
+      .replace(/^链接:.*$/m, '')
+      .trim()
+    return { repo, description, url, fallback: rest || undefined }
+  }
+  return { fallback: text }
+}
+
+/**
+ * GitHub 仓库工具：默认折叠，展开后用 Streamdown 渲染 README Markdown。
+ */
+function GithubRepoCollapsible({
+  output,
+  durationMs,
+}: {
+  output: string
+  durationMs: number
+}) {
+  const [open, setOpen] = useState(false)
+  const parsed = parseGithubRepoOutput(output)
+  const sec = Math.max(durationMs / 1000, 0.05)
+  const formattedSec = sec < 10 ? sec.toFixed(1) : String(Math.round(sec))
+  const hasReadme = Boolean(parsed.readme?.trim())
+  const title = hasReadme
+    ? `已读取仓库 README · ${formattedSec}s`
+    : `已读取仓库信息 · ${formattedSec}s`
+  const repoHint = parsed.repo?.trim()
+
+  return (
+    <div className="tool-collapsible tool-collapsible--github">
+      <button
+        type="button"
+        className="tool-collapsible__toggle"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <ChevronDown
+          className={`tool-collapsible__chevron ui-icon ${open ? 'tool-collapsible__chevron--open' : ''}`}
+          size={16}
+          strokeWidth={2}
+          aria-hidden
+        />
+        <span className="tool-collapsible__title">{title}</span>
+        {repoHint ? (
+          <span className="tool-collapsible__query" title={repoHint}>
+            {truncateHint(repoHint, 40)}
+          </span>
+        ) : null}
+      </button>
+      {open ? (
+        <div className="tool-collapsible__body tool-collapsible__body--github">
+          <div className="tool-collapsible__meta">
+            {parsed.repo ? (
+              <div className="tool-collapsible__meta-row">
+                <span className="tool-collapsible__meta-label">仓库</span>
+                <span>{parsed.repo}</span>
+              </div>
+            ) : null}
+            {parsed.description ? (
+              <div className="tool-collapsible__meta-row">
+                <span className="tool-collapsible__meta-label">描述</span>
+                <span>{parsed.description}</span>
+              </div>
+            ) : null}
+            {parsed.url ? (
+              <div className="tool-collapsible__meta-row">
+                <span className="tool-collapsible__meta-label">链接</span>
+                <a
+                  className="tool-collapsible__meta-link"
+                  href={parsed.url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {parsed.url}
+                </a>
+              </div>
+            ) : null}
+          </div>
+          {hasReadme ? (
+            <div className="tool-collapsible__md">
+              <div className="tool-collapsible__md-caption">README</div>
+              <StreamdownText>{parsed.readme!}</StreamdownText>
+            </div>
+          ) : parsed.fallback ? (
+            <pre className="tool-collapsible__pre">{parsed.fallback}</pre>
+          ) : (
+            <pre className="tool-collapsible__pre">{output}</pre>
+          )}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+/** 从工具出现到 output-available 计时，与知识库检索折叠条一致 */
+function GithubPublicRepoToolPart({
+  part,
+  paused = false,
+}: {
+  part: AnyToolPart
+  paused?: boolean
+}) {
+  const startedAtRef = useRef<number | null>(null)
+  if (startedAtRef.current === null) {
+    startedAtRef.current = Date.now()
+  }
+  const [durationMs, setDurationMs] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (part.state === 'output-available' && durationMs === null) {
+      setDurationMs(Date.now() - startedAtRef.current!)
+    }
+  }, [part.state, durationMs])
+
+  if (part.state === 'output-error') {
+    return (
+      <ToolErrorPanel
+        name="github_public_repo"
+        message={part.errorText ?? '未能完成执行，可稍后重试或换一种说法。'}
+      />
+    )
+  }
+
+  if (part.state !== 'output-available') {
+    if (paused) {
+      return <ToolPendingPanel name="github_public_repo" paused />
+    }
+    const inputJson = streamValueToJson('input' in part ? part.input : undefined)
+    const hint = getPendingHint('github_public_repo', inputJson)
+    return <ToolPendingPanel name="github_public_repo" hint={hint} />
+  }
+
+  const rawOut = part.output
+  const outputStr =
+    typeof rawOut === 'string'
+      ? rawOut
+      : streamValueToJson(rawOut) !== undefined
+        ? JSON.stringify(streamValueToJson(rawOut), null, 2)
+        : String(rawOut)
+
+  const elapsed =
+    durationMs ?? Date.now() - (startedAtRef.current ?? Date.now())
+
+  return <GithubRepoCollapsible output={outputStr} durationMs={elapsed} />
+}
+
 function DefaultToolOutput({ value }: { value: JsonValue | WebSearchToolOutput }) {
   const text =
     typeof value === 'string'
@@ -576,6 +749,10 @@ function ToolMessagePart({ part, paused = false }: { part: AnyToolPart; paused?:
 
   if (name === 'search_personal_knowledge') {
     return <SearchPersonalKnowledgeToolPart part={part} paused={paused} />
+  }
+
+  if (name === 'github_public_repo') {
+    return <GithubPublicRepoToolPart part={part} paused={paused} />
   }
 
   if (part.state === 'output-error') {
