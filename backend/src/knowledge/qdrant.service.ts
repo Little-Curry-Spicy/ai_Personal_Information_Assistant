@@ -153,15 +153,15 @@ export class QdrantService {
         : limit;
     const batch = await Promise.all(
       names.map((name) =>
-        c.search(name, {
-          vector,
+        c.query(name, {
+          query: vector,
           limit: perCollection,
           with_payload: true,
         }),
       ),
     );
     return batch
-      .flatMap((res) => res ?? [])
+      .flatMap((res) => res.points ?? [])
       .map((r) => ({
         score: r.score ?? 0,
         payload: r.payload as Record<string, unknown> | undefined,
