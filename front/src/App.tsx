@@ -56,6 +56,16 @@ function wrapMessageForProject(project: ProjectCard, body: string): string {
 
 const PROJECT_CARDS: ProjectCard[] = [
   {
+    id: 'xone',
+    name: 'xone',
+    repo: 'XONEAccount/xone',
+    techStack:
+      'React · Vite · TypeScript · Tailwind · shadcn/ui · Hono · Cloudflare Pages / Workers · Supabase · Privy · viem · x402',
+    intro:
+      'Web3 AI 钱包与 Agent 支付平台：消费端钱包（鉴权、余额、收发、A2A）叠加策略门控的 AI 助手；运营侧提供 spend key、SDK、MCP 与 HTTP，支撑受控的 x402 Agent 付款。',
+    tag: 'Web3 · Agent 支付',
+  },
+  {
     id: 'otc-flutter',
     name: 'OTC-Flutter',
     repo: 'Little-Curry-Spicy/OTC-Flutter',
@@ -65,23 +75,31 @@ const PROJECT_CARDS: ProjectCard[] = [
     tag: '金融科技 · 跨端 App',
   },
   {
-    id: 'drift-bottle',
-    name: 'drift-bottle',
-    repo: 'Little-Curry-Spicy/drift-bottle',
-    techStack:
-      'pnpm Monorepo · Expo ~54 / RN / expo-router · NativeWind · NestJS · TypeORM · Next.js App Router · Supabase（PostgreSQL + RLS）· Clerk · i18next',
+    id: 'blog',
+    name: 'blog',
+    repo: 'Ben-artist/blog',
+    techStack: 'VitePress 2.0 · Vue 3 · TypeScript · Markdown · GitHub Actions · Netlify',
     intro:
-      '以「漂流瓶」为隐喻的匿名心情应用：登录后扔瓶、在海洋里捞瓶、回复与收藏；可选对接 Nest API 与 Supabase，含品牌官网与统一响应/Swagger。',
-    tag: '社交 · Monorepo 全栈',
+      '个人技术博客：前端原理、网络、算法与 Web3 等主题，支持深色模式、本地搜索、代码高亮与自动部署。',
+    tag: '技术写作 · 静态站点',
   },
   {
-    id: 'resume-matcher',
-    name: 'resume-matcher',
-    repo: 'Little-Curry-Spicy/resume-matcher',
-    techStack: 'Vue 3 · Vite · TypeScript · NestJS；Docker Compose 一键部署',
+    id: 'web-performance',
+    name: 'web-performance',
+    repo: 'Ben-artist/web-performance',
+    techStack: 'TypeScript · PerformanceObserver · Core Web Vitals · sendBeacon / fetch',
     intro:
-      '求职场景下简历与岗位描述（JD）对齐：上传简历、粘贴 JD，输出差距分析、面试题预测与带修订标记的润色稿，并支持本地草稿与 PDF 预览。',
-    tag: 'AI 工具链 · 产品化',
+      '轻量 Web 性能监控 SDK：采集 FCP、LCP、CLS、FID、TTFB，可选 JS/资源错误与设备网络信息，支持 console、上报端点或自定义 reporter。',
+    tag: '性能监控 · SDK',
+  },
+  {
+    id: 'quick-type',
+    name: 'quick-type',
+    repo: 'Ben-artist/quick-type',
+    techStack: 'React · Vite · TypeScript · ShadcnUI · Cloudflare Workers · quicktype-core',
+    intro:
+      'URL 转 TypeScript 类型生成器：输入接口地址与请求头，拉取响应后自动推断并生成可复制的类型定义。',
+    tag: '开发工具 · 全栈',
   },
 ]
 
