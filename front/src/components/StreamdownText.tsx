@@ -1,13 +1,13 @@
 import { createCodePlugin } from '@streamdown/code'
 import { mermaid } from '@streamdown/mermaid'
 import { ExternalLink, Link2, Copy, X } from 'lucide-react'
-import { Streamdown, type ThemeInput } from 'streamdown'
+import { Streamdown } from 'streamdown'
 import 'streamdown/styles.css'
 import './StreamdownText.css'
 
-const shikiTheme: [ThemeInput, ThemeInput] = ['github-light', 'github-dark']
-
-const codePlugin = createCodePlugin({ themes: shikiTheme })
+const codePlugin = createCodePlugin({
+  themes: ['github-light', 'github-dark'],
+})
 
 type LinkSafetyModalProps = {
   isOpen: boolean
@@ -69,7 +69,6 @@ export function StreamdownText({
         mode="streaming"
         isAnimating={isStreaming}
         parseIncompleteMarkdown
-        shikiTheme={shikiTheme}
         plugins={{ mermaid, code: codePlugin }}
         className="chat-streamdown__inner"
         linkSafety={{
